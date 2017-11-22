@@ -1,0 +1,35 @@
+
+CC5X Version 3.2, Copyright (c) B Knudsen Data.
+* FUNCTION CALL STRUCTURE
+
+F: IntHandler             :#0 
+    Dec2BCD               : #1 
+    DisplayDigit          : #1 
+
+F: main                   :#0 
+    InitialiseHardware    : #1 
+    InitialiseGlobals     : #1 
+    debounce              : #2 
+    debounce              : #2 
+
+F: InitialiseHardware     :#1 
+
+F: InitialiseGlobals      :#1 
+
+F: DisplayDigit           :#1 
+
+F: Dec2BCD                :#1 
+
+F: debounce               :#2 
+
+
+ L1  IntHandler
+ L2    Dec2BCD
+ L2    DisplayDigit
+
+ L0  main
+ L1    InitialiseHardware
+ L1    InitialiseGlobals
+ L1    debounce
+ L1    debounce
+

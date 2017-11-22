@@ -1,0 +1,938 @@
+CC5X Version 3.2,   File: RPM.c               12. Nov 2010  14:48   Page 1
+
+ADDR CODE  LINE SOURCE
+
+           0001 
+           0002 ; CC5X Version 3.2, Copyright (c) B Knudsen Data
+           0003 ; C compiler for the PICmicro family
+           0004 ; ************  12. Nov 2010  14:48  *************
+           0005 
+           0006 	processor  16F627A
+           0007 	radix  DEC
+           0008 
+     0000  0009 INDF        EQU   0x00
+     0003  0010 STATUS      EQU   0x03
+     0004  0011 FSR         EQU   0x04
+     0005  0012 PORTA       EQU   0x05
+     0085  0013 TRISA       EQU   0x85
+     0006  0014 PORTB       EQU   0x06
+     0086  0015 TRISB       EQU   0x86
+     000B  0016 INTCON      EQU   0x0B
+     0000  0017 Carry       EQU   0
+     0002  0018 Zero_       EQU   2
+     0005  0019 RP0         EQU   5
+     0006  0020 RP1         EQU   6
+     0007  0021 IRP         EQU   7
+     0081  0022 OPTION_REG  EQU   0x81
+     000C  0023 PIR1        EQU   0x0C
+     0012  0024 T2CON       EQU   0x12
+     001F  0025 CMCON       EQU   0x1F
+     008C  0026 PIE1        EQU   0x8C
+     008E  0027 PCON        EQU   0x8E
+     0092  0028 PR2         EQU   0x92
+     0000  0029 RA0         EQU   0
+     0001  0030 RA1         EQU   1
+     0002  0031 RA2         EQU   2
+     0003  0032 RA3         EQU   3
+     0006  0033 RA6         EQU   6
+     0007  0034 RA7         EQU   7
+     0004  0035 RB4         EQU   4
+     0005  0036 RB5         EQU   5
+     0001  0037 TMR2IF      EQU   1
+     0031  0038 FSRTemp     EQU   0x31
+     0032  0039 T2ms        EQU   0x32
+     0033  0040 T10ms       EQU   0x33
+     0034  0041 T100ms      EQU   0x34
+     0035  0042 DigitCounter EQU   0x35
+     0036  0043 DispValue   EQU   0x36
+     0038  0044 Digit       EQU   0x38
+     003C  0045 SecondsFlag EQU   0x3C
+     003D  0046 StartButtonState EQU   0x3D
+     003E  0047 StartButtonPrev EQU   0x3E
+     003F  0048 StartButtonCounter EQU   0x3F
+     0040  0049 StartButtonTest EQU   0x40
+     0041  0050 StopButtonState EQU   0x41
+     0042  0051 StopButtonPrev EQU   0x42
+     0043  0052 StopButtonCounter EQU   0x43
+     0044  0053 StopButtonTest EQU   0x44
+     0070  0054 svrWREG     EQU   0x70
+     0020  0055 svrSTATUS   EQU   0x20
+     0027  0056 Seconds     EQU   0x27
+     0028  0057 Minutes     EQU   0x28
+     0029  0058 Timing      EQU   0x29
+     002A  0059 START       EQU   0x2A
+     002B  0060 STOP        EQU   0x2B
+CC5X Version 3.2,   File: RPM.c               12. Nov 2010  14:48   Page 2
+
+ADDR CODE  LINE SOURCE
+
+     002C  0061 StartInit   EQU   0x2C
+     002D  0062 StartInitState EQU   0x2D
+     002E  0063 StartInitCounter EQU   0x2E
+     002F  0064 StopInit    EQU   0x2F
+     0030  0065 temp        EQU   0x30
+     0021  0066 DigitCounter_2 EQU   0x21
+     0021  0067 temp_2      EQU   0x21
+     0023  0068 C1cnt       EQU   0x23
+     0024  0069 C2tmp       EQU   0x24
+     0023  0070 C3cnt       EQU   0x23
+     0024  0071 C4tmp       EQU   0x24
+     0026  0072 C5rem       EQU   0x26
+     0023  0073 C6cnt       EQU   0x23
+     0024  0074 C7tmp       EQU   0x24
+     0023  0075 C8cnt       EQU   0x23
+     0024  0076 C9tmp       EQU   0x24
+     0023  0077 C10cnt      EQU   0x23
+     0024  0078 C11tmp      EQU   0x24
+     0026  0079 C12rem      EQU   0x26
+     0023  0080 C13cnt      EQU   0x23
+     0024  0081 C14tmp      EQU   0x24
+     0021  0082 test        EQU   0x21
+     0022  0083 state       EQU   0x22
+     0023  0084 counter     EQU   0x23
+           0085 
+0000 2841  0086 	GOTO main
+           0087 
+           0088   ; FILE RPM.c
+           0089 			;//#define   PIC16F627A
+           0090 			;
+           0091 			;//#include "16F627A.H"
+           0092 			;#include "INT16CXX.H"
+           0093 			;
+           0094 			;#pragma origin = 0x0004																	
+                   // CHECK THIS IN DATASHEET.  WHAT 0x0004 ???
+     0000  0095 	ORG 0x0004
+           0096 			;#pragma config        = 0b0011.1111.0101.1000   	// MCLR Pin is input
+           0097 			;//#pragma config        = 0b0011.1111.0111.1000   	// MCLR Pin is input
+           0098 			;
+           0099 			;#define BCD_A			RB0		// OUTPUT, BIT0 BCD WORD
+           0100 			;#define BCD_B      		RB1   	// OUTPUT, BIT1 BCD WORD  
+           0101 			;#define BCD_C			RB2   	// OUTPUT, BIT2 BCD WORD		
+           0102 			;#define BCD_D	 	 	RB3   	// OUTPUT, BIT3 BCD WORD		
+           0103 			;#define MC14543_LD_CTRL	RB5		// Rising Edge Load to BCD DRiver
+           0104 			;
+           0105 			;
+           0106 			;#define DISP0			RA6
+           0107 			;#define DISP1			RB4
+           0108 			;#define DISP2			RA3	
+           0109 			;#define DISP3			RA2
+           0110 			;
+           0111 			;#define DECIMAL			RA7
+           0112 			;
+           0113 			;#define StartButton		RA0
+           0114 			;#define StopButton		RA1
+           0115 			;
+           0116 			;
+           0117 			;//#define Status0         RB6    // NOT USED
+           0118 			;//#define Status1         RB7    // NOT USED
+           0119 			;
+CC5X Version 3.2,   File: RPM.c               12. Nov 2010  14:48   Page 3
+
+ADDR CODE  LINE SOURCE
+
+           0120 			;#define MAX_DEBOUNCE_COUNT 	10			// How many times do we need the changed state = 100 ms
+           0121 			;
+           0122 			;// Declare Function Prototypes
+           0123 			;void InitialiseHardware(void);
+           0124 			;void InitialiseGlobals(void);
+           0125 			;char CheckSeconds(void);
+           0126 			;
+           0127 			;void DisplayDigit(char DigitCounter);
+           0128 			;void Dec2BCD(void);
+           0129 			;
+           0130 			;void debounce(char test, char *state, char *counter);
+           0131 			;
+           0132 			;char FSRTemp;
+           0133 			;char T2ms;								// 2 millisecond counter
+           0134 			;char T10ms;								// 10's millisecond counter
+           0135 			;char T100ms;							// 100's millisecond counter
+           0136 			;
+           0137 			;char DigitCounter;
+           0138 			;uns16 DispValue;		// unsigned 16 bit integer
+           0139 			;char Digit[4];
+           0140 			;char SecondsFlag;
+           0141 			;
+           0142 			;char StartButtonState;
+           0143 			;char StartButtonPrev;
+           0144 			;char StartButtonCounter;
+           0145 			;char StartButtonTest;
+           0146 			;
+           0147 			;char StopButtonState;
+           0148 			;char StopButtonPrev;
+           0149 			;char StopButtonCounter;
+           0150 			;char StopButtonTest;
+           0151 			;
+           0152 			;#pragma codepage 0
+           0153 			;interrupt IntHandler() {
+           0154 IntHandler
+           0155 			;   
+           0156 			;   int_save_registers
+0004 00F0  0157 	MOVWF svrWREG
+0005 0E03  0158 	SWAPF STATUS,W
+0006 1283  0159 	BCF   0x03,RP0
+0007 1303  0160 	BCF   0x03,RP1
+0008 00A0  0161 	MOVWF svrSTATUS
+           0162 			;   FSRTemp = FSR;
+0009 0804  0163 	MOVF  FSR,W
+000A 00B1  0164 	MOVWF FSRTemp
+           0165 			;
+           0166 			;
+           0167 			;	if (TMR2IF == 1) {
+000B 1C8C  0168 	BTFSS 0x0C,TMR2IF
+000C 283A  0169 	GOTO  m002
+           0170 			;		T2ms++;
+000D 0AB2  0171 	INCF  T2ms,1
+           0172 			;			DigitCounter++;			// Every 10ms Update the display digits
+000E 0AB5  0173 	INCF  DigitCounter,1
+           0174 			;			if(DigitCounter==4){	// 0 = Units, 1 = tens, 2 = hundreds, 3 = thousands
+000F 0835  0175 	MOVF  DigitCounter,W
+0010 3A04  0176 	XORLW .4
+0011 1903  0177 	BTFSC 0x03,Zero_
+           0178 			;				DigitCounter=0;
+0012 01B5  0179 	CLRF  DigitCounter
+CC5X Version 3.2,   File: RPM.c               12. Nov 2010  14:48   Page 4
+
+ADDR CODE  LINE SOURCE
+
+           0180 			;			}
+           0181 			;			DisplayDigit(DigitCounter);
+0013 0835  0182 	MOVF  DigitCounter,W
+0014 20EA  0183 	CALL  DisplayDigit
+           0184 			;			if(T2ms == 5) {
+0015 0832  0185 	MOVF  T2ms,W
+0016 3A05  0186 	XORLW .5
+0017 1D03  0187 	BTFSS 0x03,Zero_
+0018 2839  0188 	GOTO  m001
+           0189 			;				T10ms++;
+0019 0AB3  0190 	INCF  T10ms,1
+           0191 			;				T2ms = 0;
+001A 01B2  0192 	CLRF  T2ms
+           0193 			;				debounce(StartButton, &StartButtonState, & StartButtonCounter);
+001B 01A1  0194 	CLRF  test
+001C 1805  0195 	BTFSC 0x05,RA0
+001D 0AA1  0196 	INCF  test,1
+001E 303D  0197 	MOVLW .61
+001F 00A2  0198 	MOVWF state
+0020 303F  0199 	MOVLW .63
+0021 00A3  0200 	MOVWF counter
+0022 219E  0201 	CALL  debounce
+           0202 			;				debounce(StopButton, &StopButtonState, & StopButtonCounter);
+0023 01A1  0203 	CLRF  test
+0024 1885  0204 	BTFSC 0x05,RA1
+0025 0AA1  0205 	INCF  test,1
+0026 3041  0206 	MOVLW .65
+0027 00A2  0207 	MOVWF state
+0028 3043  0208 	MOVLW .67
+0029 00A3  0209 	MOVWF counter
+002A 219E  0210 	CALL  debounce
+           0211 			;				if (T10ms == 10) {
+002B 0833  0212 	MOVF  T10ms,W
+002C 3A0A  0213 	XORLW .10
+002D 1D03  0214 	BTFSS 0x03,Zero_
+002E 2839  0215 	GOTO  m001
+           0216 			;					T100ms++;
+002F 0AB4  0217 	INCF  T100ms,1
+           0218 			;					T10ms = 0;
+0030 01B3  0219 	CLRF  T10ms
+           0220 			;					Dec2BCD();
+0031 2112  0221 	CALL  Dec2BCD
+           0222 			;					if(T100ms == 10) {
+0032 0834  0223 	MOVF  T100ms,W
+0033 3A0A  0224 	XORLW .10
+0034 1D03  0225 	BTFSS 0x03,Zero_
+0035 2839  0226 	GOTO  m001
+           0227 			;						T100ms =0;	
+0036 01B4  0228 	CLRF  T100ms
+           0229 			;						SecondsFlag=1;		
+0037 3001  0230 	MOVLW .1
+0038 00BC  0231 	MOVWF SecondsFlag
+           0232 			;					}
+           0233 			;				}
+           0234 			;			}
+           0235 			;		TMR2IF = 0;
+0039 108C  0236 m001	BCF   0x0C,TMR2IF
+           0237 			;		}
+           0238 			;
+           0239 			;   FSR = FSRTemp;
+CC5X Version 3.2,   File: RPM.c               12. Nov 2010  14:48   Page 5
+
+ADDR CODE  LINE SOURCE
+
+003A 0831  0240 m002	MOVF  FSRTemp,W
+003B 0084  0241 	MOVWF FSR
+           0242 			;   int_restore_registers
+003C 0E20  0243 	SWAPF svrSTATUS,W
+003D 0083  0244 	MOVWF STATUS
+003E 0EF0  0245 	SWAPF svrWREG,1
+003F 0E70  0246 	SWAPF svrWREG,W
+           0247 			;}
+0040 0009  0248 	RETFIE
+           0249 			;
+           0250 			;
+           0251 			;
+           0252 			;void main(void) {
+           0253 main
+           0254 			;
+           0255 			;int Seconds =00;
+0041 1283  0256 	BCF   0x03,RP0
+0042 1303  0257 	BCF   0x03,RP1
+0043 01A7  0258 	CLRF  Seconds
+           0259 			;int Minutes =00;
+0044 01A8  0260 	CLRF  Minutes
+           0261 			;char Timing=0;
+0045 01A9  0262 	CLRF  Timing
+           0263 			;char START =0;
+0046 01AA  0264 	CLRF  START
+           0265 			;char STOP =0;
+0047 01AB  0266 	CLRF  STOP
+           0267 			;
+           0268 			;
+           0269 			;char StartInit =0;
+0048 01AC  0270 	CLRF  StartInit
+           0271 			;char StartInitState=0;
+0049 01AD  0272 	CLRF  StartInitState
+           0273 			;char StartInitCounter=0;
+004A 01AE  0274 	CLRF  StartInitCounter
+           0275 			;char StopInit =0;
+004B 01AF  0276 	CLRF  StopInit
+           0277 			;
+           0278 			;char temp =0;
+004C 01B0  0279 	CLRF  temp
+           0280 			;
+           0281 			;InitialiseHardware();
+004D 1683  0282 	BSF   0x03,RP0
+004E 20B9  0283 	CALL  InitialiseHardware
+           0284 			;InitialiseGlobals();
+004F 20DC  0285 	CALL  InitialiseGlobals
+           0286 			;
+           0287 			;	while(StartInit==0 && StopInit ==0){
+0050 08AC  0288 m003	MOVF  StartInit,1
+0051 1D03  0289 	BTFSS 0x03,Zero_
+0052 286C  0290 	GOTO  m005
+0053 08AF  0291 	MOVF  StopInit,1
+0054 1D03  0292 	BTFSS 0x03,Zero_
+0055 286C  0293 	GOTO  m005
+           0294 			;
+           0295 			;		DispValue=0x8888;
+0056 3088  0296 	MOVLW .136
+0057 00B6  0297 	MOVWF DispValue
+0058 00B7  0298 	MOVWF DispValue+1
+           0299 			;
+CC5X Version 3.2,   File: RPM.c               12. Nov 2010  14:48   Page 6
+
+ADDR CODE  LINE SOURCE
+
+           0300 			;		if(StartInit==StartButtonState){
+0059 082C  0301 	MOVF  StartInit,W
+005A 063D  0302 	XORWF StartButtonState,W
+005B 1D03  0303 	BTFSS 0x03,Zero_
+005C 2862  0304 	GOTO  m004
+           0305 			;			StartInit=1;
+005D 3001  0306 	MOVLW .1
+005E 00AC  0307 	MOVWF StartInit
+           0308 			;			START=0;
+005F 01AA  0309 	CLRF  START
+           0310 			;			StartButtonPrev=StartButtonState;
+0060 083D  0311 	MOVF  StartButtonState,W
+0061 00BE  0312 	MOVWF StartButtonPrev
+           0313 			;		}
+           0314 			;		if(StopInit==StopButtonState){
+0062 082F  0315 m004	MOVF  StopInit,W
+0063 0641  0316 	XORWF StopButtonState,W
+0064 1D03  0317 	BTFSS 0x03,Zero_
+0065 2850  0318 	GOTO  m003
+           0319 			;			StopInit=1;
+0066 3001  0320 	MOVLW .1
+0067 00AF  0321 	MOVWF StopInit
+           0322 			;			STOP=0;
+0068 01AB  0323 	CLRF  STOP
+           0324 			;			StopButtonPrev=StopButtonState;
+0069 0841  0325 	MOVF  StopButtonState,W
+006A 00C2  0326 	MOVWF StopButtonPrev
+           0327 			;		}
+           0328 			;	}
+006B 2850  0329 	GOTO  m003
+           0330 			;
+           0331 			;	while (1){
+           0332 			;	// Check state of start / stop buttons.
+           0333 			;
+           0334 			;//	START=StartButtonState;
+           0335 			;
+           0336 			;	if(StartButtonState!=StartButtonPrev) {
+006C 083D  0337 m005	MOVF  StartButtonState,W
+006D 063E  0338 	XORWF StartButtonPrev,W
+006E 1903  0339 	BTFSC 0x03,Zero_
+006F 2879  0340 	GOTO  m007
+           0341 			;		StartButtonPrev=StartButtonState;
+0070 083D  0342 	MOVF  StartButtonState,W
+0071 00BE  0343 	MOVWF StartButtonPrev
+           0344 			;		if(START==0)
+0072 08AA  0345 	MOVF  START,1
+0073 1D03  0346 	BTFSS 0x03,Zero_
+0074 2878  0347 	GOTO  m006
+           0348 			;			START=1;
+0075 3001  0349 	MOVLW .1
+0076 00AA  0350 	MOVWF START
+           0351 			;		else
+0077 2879  0352 	GOTO  m007
+           0353 			;			START=0;
+0078 01AA  0354 m006	CLRF  START
+           0355 			;	} 
+           0356 			;
+           0357 			;	if(StopButtonState!=StopButtonPrev) {
+0079 0841  0358 m007	MOVF  StopButtonState,W
+007A 0642  0359 	XORWF StopButtonPrev,W
+CC5X Version 3.2,   File: RPM.c               12. Nov 2010  14:48   Page 7
+
+ADDR CODE  LINE SOURCE
+
+007B 1903  0360 	BTFSC 0x03,Zero_
+007C 2886  0361 	GOTO  m009
+           0362 			;		StopButtonPrev=StopButtonState;
+007D 0841  0363 	MOVF  StopButtonState,W
+007E 00C2  0364 	MOVWF StopButtonPrev
+           0365 			;		if(STOP==0)
+007F 08AB  0366 	MOVF  STOP,1
+0080 1D03  0367 	BTFSS 0x03,Zero_
+0081 2885  0368 	GOTO  m008
+           0369 			;			STOP=1;
+0082 3001  0370 	MOVLW .1
+0083 00AB  0371 	MOVWF STOP
+           0372 			;		else
+0084 2886  0373 	GOTO  m009
+           0374 			;			STOP=0;
+0085 01AB  0375 m008	CLRF  STOP
+           0376 			;	} 
+           0377 			;
+           0378 			;	
+           0379 			;
+           0380 			;		if(START){
+0086 08AA  0381 m009	MOVF  START,1
+0087 1903  0382 	BTFSC 0x03,Zero_
+0088 28AF  0383 	GOTO  m012
+           0384 			;			if(Timing==0){
+0089 08A9  0385 	MOVF  Timing,1
+008A 1D03  0386 	BTFSS 0x03,Zero_
+008B 2892  0387 	GOTO  m010
+           0388 			;				T2ms = 0;							// Reset Timers
+008C 01B2  0389 	CLRF  T2ms
+           0390 			;				T10ms = 0;
+008D 01B3  0391 	CLRF  T10ms
+           0392 			;				T100ms = 0;
+008E 01B4  0393 	CLRF  T100ms
+           0394 			;				SecondsFlag=0;
+008F 01BC  0395 	CLRF  SecondsFlag
+           0396 			;				Timing=1;
+0090 3001  0397 	MOVLW .1
+0091 00A9  0398 	MOVWF Timing
+           0399 			;			}	
+           0400 			;/*			else {
+           0401 			;					Timing=0;
+           0402 			;			}*/	
+           0403 			;			if(SecondsFlag){
+0092 08BC  0404 m010	MOVF  SecondsFlag,1
+0093 1903  0405 	BTFSC 0x03,Zero_
+0094 28B0  0406 	GOTO  m013
+           0407 			;				Seconds++;
+0095 0AA7  0408 	INCF  Seconds,1
+           0409 			;				SecondsFlag=0;
+0096 01BC  0410 	CLRF  SecondsFlag
+           0411 			;				if(Seconds==60){
+0097 0827  0412 	MOVF  Seconds,W
+0098 3A3C  0413 	XORLW .60
+0099 1D03  0414 	BTFSS 0x03,Zero_
+009A 28A1  0415 	GOTO  m011
+           0416 			;					Minutes++;
+009B 0AA8  0417 	INCF  Minutes,1
+           0418 			;					Seconds=0;
+009C 01A7  0419 	CLRF  Seconds
+CC5X Version 3.2,   File: RPM.c               12. Nov 2010  14:48   Page 8
+
+ADDR CODE  LINE SOURCE
+
+           0420 			;					if(Minutes==100){
+009D 0828  0421 	MOVF  Minutes,W
+009E 3A64  0422 	XORLW .100
+009F 1903  0423 	BTFSC 0x03,Zero_
+           0424 			;						Minutes=0;
+00A0 01A8  0425 	CLRF  Minutes
+           0426 			;					}
+           0427 			;				}	
+           0428 			;				DispValue=Minutes;
+00A1 0828  0429 m011	MOVF  Minutes,W
+00A2 00B6  0430 	MOVWF DispValue
+00A3 01B7  0431 	CLRF  DispValue+1
+00A4 1BB6  0432 	BTFSC DispValue,7
+00A5 03B7  0433 	DECF  DispValue+1,1
+           0434 			;				DispValue=DispValue<<8;
+00A6 00B7  0435 	MOVWF DispValue+1
+00A7 01B6  0436 	CLRF  DispValue
+           0437 			;				DispValue=DispValue+Seconds;
+00A8 0827  0438 	MOVF  Seconds,W
+00A9 07B6  0439 	ADDWF DispValue,1
+00AA 1803  0440 	BTFSC 0x03,Carry
+00AB 0AB7  0441 	INCF  DispValue+1,1
+00AC 1BA7  0442 	BTFSC Seconds,7
+00AD 03B7  0443 	DECF  DispValue+1,1
+           0444 			;			}
+           0445 			;		}
+           0446 			;		else {	
+00AE 28B0  0447 	GOTO  m013
+           0448 			;			Timing=0;
+00AF 01A9  0449 m012	CLRF  Timing
+           0450 			;		}
+           0451 			;		if(STOP){
+00B0 08AB  0452 m013	MOVF  STOP,1
+00B1 1903  0453 	BTFSC 0x03,Zero_
+00B2 286C  0454 	GOTO  m005
+           0455 			;			DispValue=0;
+00B3 01B6  0456 	CLRF  DispValue
+00B4 01B7  0457 	CLRF  DispValue+1
+           0458 			;			Minutes=0;
+00B5 01A8  0459 	CLRF  Minutes
+           0460 			;			Seconds=0;
+00B6 01A7  0461 	CLRF  Seconds
+           0462 			;			Timing=0;
+00B7 01A9  0463 	CLRF  Timing
+           0464 			;		}	
+           0465 			;    }
+00B8 286C  0466 	GOTO  m005
+           0467 			;
+           0468 			;}// end main()
+           0469 			;
+           0470 			;
+           0471 			;void InitialiseHardware(void) {
+           0472 InitialiseHardware
+           0473 			;  
+           0474 			;	TRISA  = 0b00100011; 				// PORTA (0 = OUTPUT)
+00B9 3023  0475 	MOVLW .35
+00BA 0085  0476 	MOVWF TRISA
+           0477 			;	PORTA  = 0b11011100;				// Initialise PORTA
+00BB 30DC  0478 	MOVLW .220
+00BC 1283  0479 	BCF   0x03,RP0
+CC5X Version 3.2,   File: RPM.c               12. Nov 2010  14:48   Page 9
+
+ADDR CODE  LINE SOURCE
+
+00BD 0085  0480 	MOVWF PORTA
+           0481 			;	TRISB  = 0b11000000;      			// PORTB (0 = OUTPUT)
+00BE 30C0  0482 	MOVLW .192
+00BF 1683  0483 	BSF   0x03,RP0
+00C0 0086  0484 	MOVWF TRISB
+           0485 			;	PORTB  = 0b00000000;				// Initialise PORTB
+00C1 1283  0486 	BCF   0x03,RP0
+00C2 0186  0487 	CLRF  PORTB
+           0488 			;	OPTION = 0b10001000;   				// No weak pull ups, prescaler assigned to WDT
+00C3 3088  0489 	MOVLW .136
+00C4 1683  0490 	BSF   0x03,RP0
+00C5 0081  0491 	MOVWF OPTION_REG
+           0492 			;   	INTCON = 0b11000000;				// TMR2 used to provide 1ms ticks.
+00C6 30C0  0493 	MOVLW .192
+00C7 008B  0494 	MOVWF INTCON
+           0495 			;	CMCON  = 0b00000111;				// Enable RA0:3 as Digital Inputs
+00C8 3007  0496 	MOVLW .7
+00C9 1283  0497 	BCF   0x03,RP0
+00CA 009F  0498 	MOVWF CMCON
+           0499 			;	PCON   = 0b00001000;				// Set internal osciallator to 4MHz
+00CB 3008  0500 	MOVLW .8
+00CC 1683  0501 	BSF   0x03,RP0
+00CD 008E  0502 	MOVWF PCON
+           0503 			;	T2CON  = 0b00001101;				// TMR2 on, prescale = 1:4, and postscale = 1:2  (8us ticks with 4MHz oscillator)
+00CE 300D  0504 	MOVLW .13
+00CF 1283  0505 	BCF   0x03,RP0
+00D0 0092  0506 	MOVWF T2CON
+           0507 			;	PIE1   = 0b00000010;				// Bit 1 enables TMR2 = PR2 interface
+00D1 3002  0508 	MOVLW .2
+00D2 1683  0509 	BSF   0x03,RP0
+00D3 008C  0510 	MOVWF PIE1
+           0511 			;	PIR1   = 0b00000000;				// Read this to see if TMR2 = PR2 flag is set
+00D4 1283  0512 	BCF   0x03,RP0
+00D5 018C  0513 	CLRF  PIR1
+           0514 			;	PR2 = 250;							// TMR2 match value, for 2ms ticks
+00D6 30FA  0515 	MOVLW .250
+00D7 1683  0516 	BSF   0x03,RP0
+00D8 0092  0517 	MOVWF PR2
+           0518 			;MC14543_LD_CTRL=0;						// Disable loads to BCD driver
+00D9 1283  0519 	BCF   0x03,RP0
+00DA 1286  0520 	BCF   0x06,RB5
+           0521 			;
+           0522 			;}
+00DB 0008  0523 	RETURN
+           0524 			;
+           0525 			;void InitialiseGlobals(void) {
+           0526 InitialiseGlobals
+           0527 			;
+           0528 			;	T2ms = 0;							// Reset Timers
+00DC 01B2  0529 	CLRF  T2ms
+           0530 			;	T10ms = 0;
+00DD 01B3  0531 	CLRF  T10ms
+           0532 			;	T100ms = 0;
+00DE 01B4  0533 	CLRF  T100ms
+           0534 			;	SecondsFlag=0;
+00DF 01BC  0535 	CLRF  SecondsFlag
+           0536 			;	DigitCounter =0;
+00E0 01B5  0537 	CLRF  DigitCounter
+           0538 			;
+           0539 			;	StartButtonState =0;
+CC5X Version 3.2,   File: RPM.c               12. Nov 2010  14:48   Page 10
+
+ADDR CODE  LINE SOURCE
+
+00E1 01BD  0540 	CLRF  StartButtonState
+           0541 			;	StartButtonPrev =0;
+00E2 01BE  0542 	CLRF  StartButtonPrev
+           0543 			;	StartButtonCounter =0;
+00E3 01BF  0544 	CLRF  StartButtonCounter
+           0545 			;	StartButtonTest =0;
+00E4 01C0  0546 	CLRF  StartButtonTest
+           0547 			;
+           0548 			;	StopButtonState =0;
+00E5 01C1  0549 	CLRF  StopButtonState
+           0550 			;	StopButtonPrev =0;
+00E6 01C2  0551 	CLRF  StopButtonPrev
+           0552 			;	StopButtonCounter =0;
+00E7 01C3  0553 	CLRF  StopButtonCounter
+           0554 			;	StopButtonTest =0;
+00E8 01C4  0555 	CLRF  StopButtonTest
+           0556 			;
+           0557 			;
+           0558 			;}
+00E9 0008  0559 	RETURN
+           0560 			;
+           0561 			;void DisplayDigit(char DigitCounter){
+           0562 DisplayDigit
+00EA 00A1  0563 	MOVWF DigitCounter_2
+           0564 			;
+           0565 			;	DISP0=0;
+00EB 1305  0566 	BCF   0x05,RA6
+           0567 			;	DISP1=0;
+00EC 1206  0568 	BCF   0x06,RB4
+           0569 			;	DISP2=0;
+00ED 1185  0570 	BCF   0x05,RA3
+           0571 			;	DISP3=0;
+00EE 1105  0572 	BCF   0x05,RA2
+           0573 			;
+           0574 			;	DECIMAL=0;
+00EF 1385  0575 	BCF   0x05,RA7
+           0576 			;
+           0577 			;//	Put current digit on PORTB lower nibble
+           0578 			;	PORTB=PORTB&0b11110000;					// CLEAR PORTB LOWER NIBBLE
+00F0 30F0  0579 	MOVLW .240
+00F1 0586  0580 	ANDWF PORTB,1
+           0581 			;//	PORTB=PORTB|DigitCounter;				// Write current digit to lower nibble of PORTB
+           0582 			;
+           0583 			;// Turn on only the digit of interest
+           0584 			;
+           0585 			;
+           0586 			;		switch (DigitCounter) {
+00F2 0821  0587 	MOVF  DigitCounter_2,W
+00F3 1903  0588 	BTFSC 0x03,Zero_
+00F4 28FF  0589 	GOTO  m014
+00F5 3A01  0590 	XORLW .1
+00F6 1903  0591 	BTFSC 0x03,Zero_
+00F7 2903  0592 	GOTO  m015
+00F8 3A03  0593 	XORLW .3
+00F9 1903  0594 	BTFSC 0x03,Zero_
+00FA 2907  0595 	GOTO  m016
+00FB 3A01  0596 	XORLW .1
+00FC 1903  0597 	BTFSC 0x03,Zero_
+00FD 290C  0598 	GOTO  m017
+00FE 290F  0599 	GOTO  m018
+CC5X Version 3.2,   File: RPM.c               12. Nov 2010  14:48   Page 11
+
+ADDR CODE  LINE SOURCE
+
+           0600 			;  			case 0:
+           0601 			;				PORTB=PORTB|Digit[0];
+00FF 0838  0602 m014	MOVF  Digit,W
+0100 0486  0603 	IORWF PORTB,1
+           0604 			;				DISP0=1;								
+0101 1705  0605 	BSF   0x05,RA6
+           0606 			;	   			break;
+0102 290F  0607 	GOTO  m018
+           0608 			;  			case 1:
+           0609 			;				PORTB=PORTB|Digit[1];
+0103 0839  0610 m015	MOVF  Digit+1,W
+0104 0486  0611 	IORWF PORTB,1
+           0612 			;				DISP1=1;										
+0105 1606  0613 	BSF   0x06,RB4
+           0614 			;	   			break;
+0106 290F  0615 	GOTO  m018
+           0616 			;  			case 2:
+           0617 			;				PORTB=PORTB|Digit[2];
+0107 083A  0618 m016	MOVF  Digit+2,W
+0108 0486  0619 	IORWF PORTB,1
+           0620 			;				DISP2=1;	
+0109 1585  0621 	BSF   0x05,RA3
+           0622 			;				DECIMAL=1;									
+010A 1785  0623 	BSF   0x05,RA7
+           0624 			;	   			break;
+010B 290F  0625 	GOTO  m018
+           0626 			;  			case 3:
+           0627 			;				PORTB=PORTB|Digit[3];
+010C 083B  0628 m017	MOVF  Digit+3,W
+010D 0486  0629 	IORWF PORTB,1
+           0630 			;				DISP3=1;										
+010E 1505  0631 	BSF   0x05,RA2
+           0632 			;	   			break;
+           0633 			;			default:
+           0634 			;				break;
+           0635 			;		}
+           0636 			;	MC14543_LD_CTRL=1;						// Load digit into BCD driver.
+010F 1686  0637 m018	BSF   0x06,RB5
+           0638 			;    MC14543_LD_CTRL=0;						// Disable loads to BCD driver
+0110 1286  0639 	BCF   0x06,RB5
+           0640 			;}	
+0111 0008  0641 	RETURN
+           0642 			;
+           0643 			;void Dec2BCD(){
+           0644 Dec2BCD
+           0645 			;
+           0646 			;uns16 temp =0;
+0112 01A1  0647 	CLRF  temp_2
+0113 01A2  0648 	CLRF  temp_2+1
+           0649 			;
+           0650 			;
+           0651 			;//THIS CONVERTS 16BIT NO to 4 BCD bytes
+           0652 			;/*
+           0653 			;	temp=DispValue%10;
+           0654 			;	Digit[0]=temp;			
+           0655 			;	temp=DispValue/10;		
+           0656 			;	Digit[1]=temp%10;			
+           0657 			;	temp=DispValue/100;	
+           0658 			;	Digit[2]=temp%10;			
+           0659 			;	temp=DispValue/1000;	
+CC5X Version 3.2,   File: RPM.c               12. Nov 2010  14:48   Page 12
+
+ADDR CODE  LINE SOURCE
+
+           0660 			;	Digit[3]=temp;
+           0661 			;*/
+           0662 			;
+           0663 			;	temp=DispValue&0x00FF;
+0114 01A2  0664 	CLRF  temp_2+1
+0115 0836  0665 	MOVF  DispValue,W
+0116 00A1  0666 	MOVWF temp_2
+           0667 			;	Digit[0]=temp%10;
+0117 00A4  0668 	MOVWF C2tmp
+0118 0822  0669 	MOVF  temp_2+1,W
+0119 00A5  0670 	MOVWF C2tmp+1
+011A 01B8  0671 	CLRF  Digit
+011B 3010  0672 	MOVLW .16
+011C 00A3  0673 	MOVWF C1cnt
+011D 0DA4  0674 m019	RLF   C2tmp,1
+011E 0DA5  0675 	RLF   C2tmp+1,1
+011F 0DB8  0676 	RLF   Digit,1
+0120 1803  0677 	BTFSC 0x03,Carry
+0121 2926  0678 	GOTO  m020
+0122 300A  0679 	MOVLW .10
+0123 0238  0680 	SUBWF Digit,W
+0124 1C03  0681 	BTFSS 0x03,Carry
+0125 2928  0682 	GOTO  m021
+0126 300A  0683 m020	MOVLW .10
+0127 02B8  0684 	SUBWF Digit,1
+0128 0BA3  0685 m021	DECFSZ C1cnt,1
+0129 291D  0686 	GOTO  m019
+           0687 			;	temp=temp/10;
+012A 0821  0688 	MOVF  temp_2,W
+012B 00A4  0689 	MOVWF C4tmp
+012C 0822  0690 	MOVF  temp_2+1,W
+012D 00A5  0691 	MOVWF C4tmp+1
+012E 01A6  0692 	CLRF  C5rem
+012F 3010  0693 	MOVLW .16
+0130 00A3  0694 	MOVWF C3cnt
+0131 0DA4  0695 m022	RLF   C4tmp,1
+0132 0DA5  0696 	RLF   C4tmp+1,1
+0133 0DA6  0697 	RLF   C5rem,1
+0134 1803  0698 	BTFSC 0x03,Carry
+0135 293A  0699 	GOTO  m023
+0136 300A  0700 	MOVLW .10
+0137 0226  0701 	SUBWF C5rem,W
+0138 1C03  0702 	BTFSS 0x03,Carry
+0139 293D  0703 	GOTO  m024
+013A 300A  0704 m023	MOVLW .10
+013B 02A6  0705 	SUBWF C5rem,1
+013C 1403  0706 	BSF   0x03,Carry
+013D 0DA1  0707 m024	RLF   temp_2,1
+013E 0DA2  0708 	RLF   temp_2+1,1
+013F 0BA3  0709 	DECFSZ C3cnt,1
+0140 2931  0710 	GOTO  m022
+           0711 			;	Digit[1]=temp%10;
+0141 0821  0712 	MOVF  temp_2,W
+0142 00A4  0713 	MOVWF C7tmp
+0143 0822  0714 	MOVF  temp_2+1,W
+0144 00A5  0715 	MOVWF C7tmp+1
+0145 01B9  0716 	CLRF  Digit+1
+0146 3010  0717 	MOVLW .16
+0147 00A3  0718 	MOVWF C6cnt
+0148 0DA4  0719 m025	RLF   C7tmp,1
+CC5X Version 3.2,   File: RPM.c               12. Nov 2010  14:48   Page 13
+
+ADDR CODE  LINE SOURCE
+
+0149 0DA5  0720 	RLF   C7tmp+1,1
+014A 0DB9  0721 	RLF   Digit+1,1
+014B 1803  0722 	BTFSC 0x03,Carry
+014C 2951  0723 	GOTO  m026
+014D 300A  0724 	MOVLW .10
+014E 0239  0725 	SUBWF Digit+1,W
+014F 1C03  0726 	BTFSS 0x03,Carry
+0150 2953  0727 	GOTO  m027
+0151 300A  0728 m026	MOVLW .10
+0152 02B9  0729 	SUBWF Digit+1,1
+0153 0BA3  0730 m027	DECFSZ C6cnt,1
+0154 2948  0731 	GOTO  m025
+           0732 			;	temp=DispValue;
+0155 0836  0733 	MOVF  DispValue,W
+0156 00A1  0734 	MOVWF temp_2
+0157 0837  0735 	MOVF  DispValue+1,W
+0158 00A2  0736 	MOVWF temp_2+1
+           0737 			;	temp=temp>>8;
+0159 00A1  0738 	MOVWF temp_2
+015A 01A2  0739 	CLRF  temp_2+1
+           0740 			;	Digit[2]=temp%10;
+015B 00A4  0741 	MOVWF C9tmp
+015C 0822  0742 	MOVF  temp_2+1,W
+015D 00A5  0743 	MOVWF C9tmp+1
+015E 01BA  0744 	CLRF  Digit+2
+015F 3010  0745 	MOVLW .16
+0160 00A3  0746 	MOVWF C8cnt
+0161 0DA4  0747 m028	RLF   C9tmp,1
+0162 0DA5  0748 	RLF   C9tmp+1,1
+0163 0DBA  0749 	RLF   Digit+2,1
+0164 1803  0750 	BTFSC 0x03,Carry
+0165 296A  0751 	GOTO  m029
+0166 300A  0752 	MOVLW .10
+0167 023A  0753 	SUBWF Digit+2,W
+0168 1C03  0754 	BTFSS 0x03,Carry
+0169 296C  0755 	GOTO  m030
+016A 300A  0756 m029	MOVLW .10
+016B 02BA  0757 	SUBWF Digit+2,1
+016C 0BA3  0758 m030	DECFSZ C8cnt,1
+016D 2961  0759 	GOTO  m028
+           0760 			;	temp=temp/10;
+016E 0821  0761 	MOVF  temp_2,W
+016F 00A4  0762 	MOVWF C11tmp
+0170 0822  0763 	MOVF  temp_2+1,W
+0171 00A5  0764 	MOVWF C11tmp+1
+0172 01A6  0765 	CLRF  C12rem
+0173 3010  0766 	MOVLW .16
+0174 00A3  0767 	MOVWF C10cnt
+0175 0DA4  0768 m031	RLF   C11tmp,1
+0176 0DA5  0769 	RLF   C11tmp+1,1
+0177 0DA6  0770 	RLF   C12rem,1
+0178 1803  0771 	BTFSC 0x03,Carry
+0179 297E  0772 	GOTO  m032
+017A 300A  0773 	MOVLW .10
+017B 0226  0774 	SUBWF C12rem,W
+017C 1C03  0775 	BTFSS 0x03,Carry
+017D 2981  0776 	GOTO  m033
+017E 300A  0777 m032	MOVLW .10
+017F 02A6  0778 	SUBWF C12rem,1
+0180 1403  0779 	BSF   0x03,Carry
+CC5X Version 3.2,   File: RPM.c               12. Nov 2010  14:48   Page 14
+
+ADDR CODE  LINE SOURCE
+
+0181 0DA1  0780 m033	RLF   temp_2,1
+0182 0DA2  0781 	RLF   temp_2+1,1
+0183 0BA3  0782 	DECFSZ C10cnt,1
+0184 2975  0783 	GOTO  m031
+           0784 			;	Digit[3]=temp%10;
+0185 0821  0785 	MOVF  temp_2,W
+0186 00A4  0786 	MOVWF C14tmp
+0187 0822  0787 	MOVF  temp_2+1,W
+0188 00A5  0788 	MOVWF C14tmp+1
+0189 01BB  0789 	CLRF  Digit+3
+018A 3010  0790 	MOVLW .16
+018B 00A3  0791 	MOVWF C13cnt
+018C 0DA4  0792 m034	RLF   C14tmp,1
+018D 0DA5  0793 	RLF   C14tmp+1,1
+018E 0DBB  0794 	RLF   Digit+3,1
+018F 1803  0795 	BTFSC 0x03,Carry
+0190 2995  0796 	GOTO  m035
+0191 300A  0797 	MOVLW .10
+0192 023B  0798 	SUBWF Digit+3,W
+0193 1C03  0799 	BTFSS 0x03,Carry
+0194 2997  0800 	GOTO  m036
+0195 300A  0801 m035	MOVLW .10
+0196 02BB  0802 	SUBWF Digit+3,1
+0197 0BA3  0803 m036	DECFSZ C13cnt,1
+0198 298C  0804 	GOTO  m034
+           0805 			;	temp=DispValue;
+0199 0836  0806 	MOVF  DispValue,W
+019A 00A1  0807 	MOVWF temp_2
+019B 0837  0808 	MOVF  DispValue+1,W
+019C 00A2  0809 	MOVWF temp_2+1
+           0810 			;
+           0811 			;}
+019D 0008  0812 	RETURN
+           0813 			;
+           0814 			;void debounce(char test, char *state, char *counter) {
+           0815 debounce
+           0816 			;	if ((*state) != test) {
+019E 1383  0817 	BCF   0x03,IRP
+019F 0822  0818 	MOVF  state,W
+01A0 0084  0819 	MOVWF FSR
+01A1 0800  0820 	MOVF  INDF,W
+01A2 0621  0821 	XORWF test,W
+01A3 1903  0822 	BTFSC 0x03,Zero_
+01A4 29BA  0823 	GOTO  m037
+           0824 			;   	(*counter)++;
+01A5 1383  0825 	BCF   0x03,IRP
+01A6 0823  0826 	MOVF  counter,W
+01A7 0084  0827 	MOVWF FSR
+01A8 0A80  0828 	INCF  INDF,1
+           0829 			;		if ((*counter) >= MAX_DEBOUNCE_COUNT) {
+01A9 1383  0830 	BCF   0x03,IRP
+01AA 0823  0831 	MOVF  counter,W
+01AB 0084  0832 	MOVWF FSR
+01AC 300A  0833 	MOVLW .10
+01AD 0200  0834 	SUBWF INDF,W
+01AE 1C03  0835 	BTFSS 0x03,Carry
+01AF 29BE  0836 	GOTO  m038
+           0837 			;			(*counter) = 0;
+01B0 1383  0838 	BCF   0x03,IRP
+01B1 0823  0839 	MOVF  counter,W
+CC5X Version 3.2,   File: RPM.c               12. Nov 2010  14:48   Page 15
+
+ADDR CODE  LINE SOURCE
+
+01B2 0084  0840 	MOVWF FSR
+01B3 0180  0841 	CLRF  INDF
+           0842 			;			(*state) = test;
+01B4 1383  0843 	BCF   0x03,IRP
+01B5 0822  0844 	MOVF  state,W
+01B6 0084  0845 	MOVWF FSR
+01B7 0821  0846 	MOVF  test,W
+01B8 0080  0847 	MOVWF INDF
+           0848 			;		}
+           0849 			;	} else {
+01B9 29BE  0850 	GOTO  m038
+           0851 			;		(*counter) = 0;
+01BA 1383  0852 m037	BCF   0x03,IRP
+01BB 0823  0853 	MOVF  counter,W
+01BC 0084  0854 	MOVWF FSR
+01BD 0180  0855 	CLRF  INDF
+           0856 			;	}
+           0857 			;}
+01BE 0008  0858 m038	RETURN
+           0859 
+     0000  0860 	ORG 0x2007
+2007 3F58  0861 	DATA 3F58H
+     0000  0862 	END
+     0000  0863 
+     0000  0864 
+     0000  0865 ; *** KEY INFO ***
+     0000  0866 
+     0000  0867 ; 0x00B9   35 word(s)  3 % : InitialiseHardware
+     0000  0868 ; 0x00DC   14 word(s)  1 % : InitialiseGlobals
+     0000  0869 ; 0x00EA   40 word(s)  3 % : DisplayDigit
+     0000  0870 ; 0x0112  140 word(s) 13 % : Dec2BCD
+     0000  0871 ; 0x019E   33 word(s)  3 % : debounce
+     0000  0872 ; 0x0004   61 word(s)  5 % : IntHandler
+     0000  0873 ; 0x0041  120 word(s) 11 % : main
+     0000  0874 
+     0000  0875 ; RAM usage: 38 bytes (18 local), 186 bytes free
+     0000  0876 ; Maximum call level: 1 (+2 for interrupt)
+     0000  0877 ; Total of 444 code words (43 %)

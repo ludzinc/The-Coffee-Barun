@@ -1,0 +1,32 @@
+CC5X Version 3.2, Copyright (c) B Knudsen Data, Norway 1992-2004, No. 1654
+ --> EXTENDED edition, 8-32 bit int, 16-32 bit float, 8k code
+RPM.c:
+ 12. Nov 2010  14:50
+ Chip = 16F627A
+ RAM : -------- -------- -------- -------- ======== ======== =....... ........
+  40h: .....*** ******** ******** ******** ******** ******** =******* ********
+  80h: -------- -------- -------- -------- ******** ******** ******** ********
+  C0h: ******** ******** ******** ******** ******** ******** -------- --------
+ 100h: -------- -------- -------- -------- ******** ******** ******** ********
+ 140h: ******** ********
+RAM usage: 38 bytes (18 local), 186 bytes free
+
+
+		if(StartButton==StartButtonState){
+		                                 ^------
+Error[1] C:\Simon\CC5x\Projects\Barum RPM Display\RPM.c 124 : Unable to generate code
+ (The C syntax is correct. However, CC5X is unable to generate code.
+ The workaround is often to split the code into simpler statements,
+ using an extra variable to store temporary results. Sometimes it is
+ enough to change the sequence of operations)
+
+		}
+		if(StopButton==StopButtonState){
+		                               ^------
+Error[2] C:\Simon\CC5x\Projects\Barum RPM Display\RPM.c 129 : Unable to generate code
+Warning[1] C:\Simon\CC5x\Projects\Barum RPM Display\RPM.c 299 : Duplicate inline division (math library may save code, option -wi removes warning)
+Warning[2] C:\Simon\CC5x\Projects\Barum RPM Display\RPM.c 302 : Duplicate inline division (math library may save code, option -wi removes warning)
+Warning[3] C:\Simon\CC5x\Projects\Barum RPM Display\RPM.c 303 : Duplicate inline division (math library may save code, option -wi removes warning)
+Warning[4] C:\Simon\CC5x\Projects\Barum RPM Display\RPM.c 304 : Duplicate inline division (math library may save code, option -wi removes warning)
+
+Error options: -ew: no warning details  -ed: no error details  -eL: list details

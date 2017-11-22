@@ -1,0 +1,79 @@
+
+CC5X Version 3.2, Copyright (c) B Knudsen Data.
+* FUNCTION CALL STRUCTURE
+
+F: IntHandler             :#0  : p0
+    Dec2BCD               : #1  : p0 -> p0
+    DisplayDigit          : #1  : p0 -> p0
+
+F: _fmul24                :#1  : p0 <- p0 
+
+F: _fdiv24                :#0  : p0
+
+F: _fadd24                :#2  : p0
+
+F: _fsub24                :#1  : p0 <- p0 
+    _fadd24               : #2  : p0 -> p0
+
+F: _int24ToFloat24        :#3  : p0
+
+F: _int32ToFloat24        :#0  : p0
+
+F: _float24ToInt24        :#3  : p0
+
+F: _f24_LT_f24            :#1  : p0 <- p0 
+
+F: _f24_GE_f24            :#0  : p0
+
+F: _f24_GT_f24            :#1  : p0 <- p0 
+
+F: _f24_LE_f24            :#0  : p0
+
+F: main                   :#0  : p0
+    InitialiseHardware    : #1  : p0 -> p0
+    InitialiseGlobals     : #1  : p0 -> p0
+    GetA2D                : #1  : p0 -> p0
+
+F: InitialiseHardware     :#1  : p0 <- p0 
+
+F: InitialiseGlobals      :#1  : p0 <- p0 
+
+F: DisplayDigit           :#1  : p0 <- p0 
+
+F: Dec2BCD                :#1  : p0 <- p0 
+
+F: GetA2D                 :#1  : p0 <- p0 
+    _int24ToFloat24       : #3  : p0 -> p0
+    _fmul24               : #1  : p0 -> p0
+    _fsub24               : #1  : p0 -> p0
+    _float24ToInt24       : #3  : p0 -> p0
+    _int24ToFloat24       : #3  : p0 -> p0
+    _f24_GT_f24           : #1  : p0 -> p0
+    _fadd24               : #2  : p0 -> p0
+    _float24ToInt24       : #3  : p0 -> p0
+    _int24ToFloat24       : #3  : p0 -> p0
+    _f24_LT_f24           : #1  : p0 -> p0
+    _float24ToInt24       : #3  : p0 -> p0
+
+
+ L1  IntHandler
+ L2    Dec2BCD
+ L2    DisplayDigit
+
+ L0  main
+ L1    InitialiseHardware
+ L1    InitialiseGlobals
+ L1    GetA2D
+ L2      _int24ToFloat24
+ L2      _fmul24
+ L2      _fsub24
+ L3        _fadd24
+ L2      _float24ToInt24
+ L2      _int24ToFloat24
+ L2      _f24_GT_f24
+ L2      _fadd24
+ L2      _float24ToInt24
+ L2      _int24ToFloat24
+ L2      _f24_LT_f24
+ L2      _float24ToInt24
+

@@ -1,0 +1,30 @@
+CC5X Version 3.2, Copyright (c) B Knudsen Data, Norway 1992-2004, No. 1654
+ --> EXTENDED edition, 8-32 bit int, 16-32 bit float, 8k code
+RPM.c:
+  5. Sep 2011  12:50
+ Chip = 16F88
+ RAM : -------- -------- -------- -------- ======== ======== ======== ==......
+  40h: ........ ........ ........ ........ ........ ........ =....*** ********
+  80h: -------- -------- -------- -------- ******** ******** ******** ********
+  C0h: ******** ******** ******** ******** ******** ******** -------- --------
+ 100h: -------- -------- ******** ******** ******** ******** ******** ********
+ 140h: ******** ******** ******** ******** ******** ******** -------- --------
+ 180h: -------- -------- ******** ******** ******** ******** ******** ********
+ 1C0h: ******** ******** ******** ******** ******** ******** -------- --------
+RAM usage: 85 bytes (27 local), 283 bytes free
+Warning[1] C:\Simon\CC5x\Projects\Barum RPM Display\RPM\RPM.c 160 : Duplicate inline division (math library may save code, option -wi removes warning)
+Warning[2] C:\Simon\CC5x\Projects\Barum RPM Display\RPM\RPM.c 161 : Duplicate inline division (math library may save code, option -wi removes warning)
+Warning[3] C:\Simon\CC5x\Projects\Barum RPM Display\RPM\RPM.c 162 : Duplicate inline division (math library may save code, option -wi removes warning)
+Warning[4] C:\Simon\CC5x\Projects\Barum RPM Display\RPM\RPM.c 204 : Duplicate inline division (math library may save code, option -wi removes warning)
+ File 'RPM.fcs'
+ Optimizing - removed 75 instructions (-7 %)
+ File 'RPM.var'
+Warning[5] C:\Simon\CC5x\Projects\Barum RPM Display\RPM\RPM.c 49 : FSR saved but not changed in 'IntHandler'
+ File 'RPM.asm'
+ File 'RPM.lst'
+ File 'RPM.cod'
+ File 'RPM.occ'
+ Codepage 0 has  979 word(s) :  47 %
+ Codepage 1 has    0 word(s) :   0 %
+ File 'RPM.hex'
+Total of 979 code words (23 %)

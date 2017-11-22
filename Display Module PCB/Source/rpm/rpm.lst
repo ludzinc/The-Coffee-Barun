@@ -1,0 +1,2304 @@
+CC5X Version 3.2,   File: RPM.c                5. Sep 2011  12:50   Page 1
+
+ADDR CODE  LINE SOURCE
+
+           0001 
+           0002 ; CC5X Version 3.2, Copyright (c) B Knudsen Data
+           0003 ; C compiler for the PICmicro family
+           0004 ; ************   5. Sep 2011  12:50  *************
+           0005 
+           0006 	processor  16F88
+           0007 	radix  DEC
+           0008 
+     0000  0009 INDF        EQU   0x00
+     0003  0010 STATUS      EQU   0x03
+     0004  0011 FSR         EQU   0x04
+     0005  0012 PORTA       EQU   0x05
+     0085  0013 TRISA       EQU   0x85
+     0006  0014 PORTB       EQU   0x06
+     0086  0015 TRISB       EQU   0x86
+     000A  0016 PCLATH      EQU   0x0A
+     000B  0017 INTCON      EQU   0x0B
+     0000  0018 Carry       EQU   0
+     0002  0019 Zero_       EQU   2
+     0005  0020 RP0         EQU   5
+     0006  0021 RP1         EQU   6
+     0007  0022 IRP         EQU   7
+     0081  0023 OPTION_REG  EQU   0x81
+     000C  0024 PIR1        EQU   0x0C
+     0012  0025 T2CON       EQU   0x12
+     001E  0026 ADRESH      EQU   0x1E
+     001F  0027 ADCON0      EQU   0x1F
+     008C  0028 PIE1        EQU   0x8C
+     008E  0029 PCON        EQU   0x8E
+     008F  0030 OSCCON      EQU   0x8F
+     0092  0031 PR2         EQU   0x92
+     009B  0032 ANSEL       EQU   0x9B
+     009C  0033 CMCON       EQU   0x9C
+     009E  0034 ADRESL      EQU   0x9E
+     009F  0035 ADCON1      EQU   0x9F
+     0001  0036 TMR2IF      EQU   1
+     003A  0037 FSRTemp     EQU   0x3A
+     003B  0038 DigitCounter EQU   0x3B
+     003C  0039 DispValue   EQU   0x3C
+     003E  0040 A2DResult   EQU   0x3E
+     0068  0041 Digit       EQU   0x68
+     006C  0042 FilterIndex EQU   0x6C
+     006D  0043 MagicNumber EQU   0x6D
+     0071  0044 OldMagicNumber EQU   0x71
+     0070  0045 svrWREG     EQU   0x70
+     0020  0046 svrSTATUS   EQU   0x20
+     0021  0047 svrPCLATH   EQU   0x21
+     0001  0048 FpOverflow  EQU   1
+     0002  0049 FpUnderFlow EQU   2
+     0006  0050 FpRounding  EQU   6
+     0030  0051 arg1f24     EQU   0x30
+     0033  0052 arg2f24     EQU   0x33
+     0036  0053 aarg        EQU   0x36
+     0038  0054 sign        EQU   0x38
+     0039  0055 counter     EQU   0x39
+     0036  0056 xtra        EQU   0x36
+     0037  0057 temp        EQU   0x37
+     0038  0058 expo        EQU   0x38
+     0039  0059 sign_3      EQU   0x39
+     0036  0060 expo_2      EQU   0x36
+CC5X Version 3.2,   File: RPM.c                5. Sep 2011  12:50   Page 2
+
+ADDR CODE  LINE SOURCE
+
+     0037  0061 xtra_2      EQU   0x37
+     0038  0062 sign_4      EQU   0x38
+     0030  0063 rval        EQU   0x30
+     0036  0064 sign_6      EQU   0x36
+     0037  0065 expo_4      EQU   0x37
+     0038  0066 xtra_4      EQU   0x38
+     0030  0067 rval_3      EQU   0x30
+     0029  0068 i           EQU   0x29
+     0022  0069 DigitCounter_2 EQU   0x22
+     0022  0070 temp_2      EQU   0x22
+     0024  0071 C1cnt       EQU   0x24
+     0025  0072 C2tmp       EQU   0x25
+     0024  0073 C3cnt       EQU   0x24
+     0025  0074 C4tmp       EQU   0x25
+     0027  0075 C5rem       EQU   0x27
+     0024  0076 C6cnt       EQU   0x24
+     0025  0077 C7tmp       EQU   0x25
+     0024  0078 C8cnt       EQU   0x24
+     0025  0079 C9tmp       EQU   0x25
+     0027  0080 C10rem      EQU   0x27
+     0024  0081 C11cnt      EQU   0x24
+     0025  0082 C12tmp      EQU   0x25
+     0024  0083 C13cnt      EQU   0x24
+     0025  0084 C14tmp      EQU   0x25
+     0027  0085 C15rem      EQU   0x27
+     0029  0086 Filter      EQU   0x29
+     002B  0087 i_2         EQU   0x2B
+     002C  0088 filtertemp  EQU   0x2C
+     002E  0089 comparison  EQU   0x2E
+     0030  0090 C16cnt      EQU   0x30
+     0031  0091 C17tmp      EQU   0x31
+     0033  0092 C18rem      EQU   0x33
+           0093 
+0000 29E0  0094 	GOTO main
+           0095 
+           0096   ; FILE RPM.c
+           0097 			;//#define   PIC16F88
+           0098 			;
+           0099 			;//#include "16F88.H"
+           0100 			;#include "INT16CXX.H"
+           0101 			;
+           0102 			;
+           0103 			;#pragma origin = 0x0004																	
+                   // CHECK THIS IN DATASHEET.  WHAT 0x0004 ???
+     0000  0104 	ORG 0x0004
+           0105 			;#pragma config        	= 0b0011.1111.0101.1000   	// MCLR Pin is input
+           0106 			;#pragma config reg2     = 0b0011.1111.1111.1100   
+           0107 			;
+           0108 			;#define BCD_A			PORTB.0	//RB0		// OUTPUT, BIT0 BCD WORD
+           0109 			;#define BCD_B      		PORTB.1 //RB1   	// OUTPUT, BIT1 BCD WORD  
+           0110 			;#define BCD_C			PORTB.2 //RB2   	// OUTPUT, BIT2 BCD WORD		
+           0111 			;#define BCD_D	 	 	PORTB.3 //RB3   	// OUTPUT, BIT3 BCD WORD
+           0112 			;#define MC14543_BI_CTRL PORTB.4 //RB4		// Set low to disable blanking
+           0113 			;#define MC14543_LD_CTRL	PORTB.5 //RB5		// Rising Edge Load to BCD DRiver
+           0114 			;
+           0115 			;#define DISP0			PORTA.6	//RA2
+           0116 			;#define DISP1			PORTA.4 //RA3
+           0117 			;#define DISP2			PORTA.3 //RA4	
+           0118 			;#define DISP3			PORTA.2 //RA6
+           0119 			;#define DECIMAL			PORTA.7 //RA7
+CC5X Version 3.2,   File: RPM.c                5. Sep 2011  12:50   Page 3
+
+ADDR CODE  LINE SOURCE
+
+           0120 			;
+           0121 			;#define ScaleRange		1850
+           0122 			;#define ScaleOffset		500
+           0123 			;#define FilterDepth		20
+           0124 			;
+           0125 			;// Declare Function Prototypes
+           0126 			;void InitialiseHardware(void);
+           0127 			;void InitialiseGlobals(void);
+           0128 			;void DisplayDigit(char DigitCounter);
+           0129 			;void Dec2BCD(void);
+           0130 			;void GetA2D(void);
+           0131 			;
+           0132 			;char FSRTemp;
+           0133 			;char DigitCounter;
+           0134 			;uns16 DispValue;		// unsigned 16 bit integer
+           0135 			;uns16 A2DResult;
+           0136 			;uns16 A2DFilter[FilterDepth];
+           0137 			;char Digit[4];
+           0138 			;char FilterIndex;
+           0139 			;
+           0140 			;float MagicNumber;
+           0141 			;float OldMagicNumber;
+           0142 			;
+           0143 			;#pragma codepage 0
+           0144 			;interrupt IntHandler() {
+           0145 IntHandler
+           0146 			;   	int_save_registers
+0004 00F0  0147 	MOVWF svrWREG
+0005 0E03  0148 	SWAPF STATUS,W
+0006 1283  0149 	BCF   0x03,RP0
+0007 1303  0150 	BCF   0x03,RP1
+0008 00A0  0151 	MOVWF svrSTATUS
+0009 080A  0152 	MOVF  PCLATH,W
+000A 00A1  0153 	MOVWF svrPCLATH
+000B 018A  0154 	CLRF  PCLATH
+           0155 			;   	FSRTemp = FSR;
+000C 0804  0156 	MOVF  FSR,W
+000D 00BA  0157 	MOVWF FSRTemp
+           0158 			;	if (TMR2IF == 1) {
+000E 1C8C  0159 	BTFSS 0x0C,TMR2IF
+000F 2819  0160 	GOTO  m001
+           0161 			;		DigitCounter++;				// Every 10ms Update the display digits
+0010 0ABB  0162 	INCF  DigitCounter,1
+           0163 			;		if (DigitCounter == 4) {	// 0 = Units, 1 = tens, 2 = hundreds, 3 = thousands
+0011 083B  0164 	MOVF  DigitCounter,W
+0012 3A04  0165 	XORLW .4
+0013 1903  0166 	BTFSC 0x03,Zero_
+           0167 			;			DigitCounter = 0;
+0014 01BB  0168 	CLRF  DigitCounter
+           0169 			;			}
+           0170 			;		Dec2BCD();
+0015 225E  0171 	CALL  Dec2BCD
+           0172 			;		DisplayDigit(DigitCounter);
+0016 083B  0173 	MOVF  DigitCounter,W
+0017 2237  0174 	CALL  DisplayDigit
+           0175 			;		TMR2IF = 0;
+0018 108C  0176 	BCF   0x0C,TMR2IF
+           0177 			;	}
+           0178 			;   	FSR = FSRTemp;
+0019 083A  0179 m001	MOVF  FSRTemp,W
+CC5X Version 3.2,   File: RPM.c                5. Sep 2011  12:50   Page 4
+
+ADDR CODE  LINE SOURCE
+
+001A 0084  0180 	MOVWF FSR
+           0181 			;   	int_restore_registers
+001B 0821  0182 	MOVF  svrPCLATH,W
+001C 008A  0183 	MOVWF PCLATH
+001D 0E20  0184 	SWAPF svrSTATUS,W
+001E 0083  0185 	MOVWF STATUS
+001F 0EF0  0186 	SWAPF svrWREG,1
+0020 0E70  0187 	SWAPF svrWREG,W
+           0188 			;}
+0021 0009  0189 	RETFIE
+           0190 
+           0191   ; FILE Math24f.h
+           0192 			;// *************************************************
+           0193 			;// 24 bit basic floating point math operations
+           0194 			;// Copyright (c) B Knudsen Data, Norway, 2000 - 2009
+           0195 			;// *************************************************
+           0196 			;
+           0197 			;#pragma library 1
+           0198 			;/* PROTOTYPES for page definition in application header file:
+           0199 			;float24 operator* _fmul24( float24 arg1f24, float24 arg2f24);
+           0200 			;float24 operator/ _fdiv24( float24 arg1f24, float24 arg2f24);
+           0201 			;float24 operator+ _fadd24( float24 arg1f24, float24 arg2f24);
+           0202 			;float24 operator- _fsub24( float24 arg1f24, float24 arg2f24);
+           0203 			;float24 operator= _int24ToFloat24( int24 arg1f24);
+           0204 			;float24 operator= _int32ToFloat24( int32 arg32);
+           0205 			;int24 operator= _float24ToInt24( float24 arg1f24);
+           0206 			;bit operator< _f24_LT_f24( float24 arg1f24, float24 arg2f24);
+           0207 			;bit operator>= _f24_GE_f24( float24 arg1f24, float24 arg2f24);
+           0208 			;bit operator> _f24_GT_f24( float24 arg1f24, float24 arg2f24);
+           0209 			;bit operator<= _f24_LE_f24( float24 arg1f24, float24 arg2f24);
+           0210 			;*/
+           0211 			;
+           0212 			;// DEFINABLE SYMBOLS (in the application code):
+           0213 			;//#define FP_OPTIM_SPEED  // optimize for SPEED: default
+           0214 			;//#define FP_OPTIM_SIZE   // optimize for SIZE
+           0215 			;//#define DISABLE_ROUNDING   // disable rounding and save code space
+           0216 			;
+           0217 			;#define float24ToIEEE754(a) { a.mid8=rl(a.mid8); a.high8=rr(a.high8);\
+           0218 			;                              a.mid8=rr(a.mid8); }
+           0219 			;#define IEEE754ToFloat24(a) { a.mid8=rl(a.mid8); a.high8=rl(a.high8);\
+           0220 			;                              a.mid8=rr(a.mid8); }
+           0221 			;
+           0222 			;
+           0223 			;/*  24 bit floating point format:
+           0224 			;
+           0225 			;  address  ID
+           0226 			;    X      a.low8  : LSB, bit 0-7 of mantissa
+           0227 			;    X+1    a.mid8  : bit 8-14 of mantissa, bit 15 is the sign bit
+           0228 			;    X+2    a.high8 : MSB, bit 0-7 of exponent, with bias 0x7F
+           0229 			;
+           0230 			;    bit 15 of mantissa is a hidden bit, always equal to 1
+           0231 			;    zero (0.0) :  a.high8 = 0 (mantissa & sign ignored)
+           0232 			;
+           0233 			;   MSB    LSB
+           0234 			;    7F 00 00  : 1.0   =  1.0  * 2**(0x7F-0x7F) = 1.0 * 1
+           0235 			;    7F 80 00  : -1.0  = -1.0  * 2**(0x7F-0x7F) = -1.0 * 1
+           0236 			;    80 00 00  : 2.0   =  1.0  * 2**(0x80-0x7F) = 1.0 * 2
+           0237 			;    80 40 00  : 3.0   =  1.5  * 2**(0x80-0x7F) = 1.5 * 2
+           0238 			;    7E 60 00  : 0.875 =  1.75 * 2**(0x7E-0x7F) = 1.75 * 0.5
+           0239 			;    7F 60 00  : 1.75  =  1.75 * 2**(0x7E-0x7F) = 1.75 * 1
+CC5X Version 3.2,   File: RPM.c                5. Sep 2011  12:50   Page 5
+
+ADDR CODE  LINE SOURCE
+
+           0240 			;    7F 7F FF  : 1.999969482
+           0241 			;    00 7C 5A  : 0.0 (mantissa & sign ignored)
+           0242 			;    01 00 00  : 1.17549435e-38 =  1.0 * 2**(0x01-0x7F)
+           0243 			;    FE 7F FF  : 3.40277175e+38 =  1.999969482 * 2**(0xFE-0x7F)
+           0244 			;    FF 00 00  : +INF : positive infinity
+           0245 			;    FF 80 00  : -INF : negative infinity
+           0246 			;*/                 
+           0247 			;
+           0248 			;#define  FpBIAS  0x7F
+           0249 			;
+           0250 			;#ifndef FpFlags_defined
+           0251 			; #define FpFlags_defined
+           0252 			;
+           0253 			; char FpFlags;
+           0254 			; //bit IOV         @ FpFlags.0; // integer overflow flag: NOT USED
+           0255 			; bit FpOverflow    @ FpFlags.1; // floating point overflow flag
+           0256 			; bit FpUnderFlow   @ FpFlags.2; // floating point underflow flag
+           0257 			; bit FpDiv0        @ FpFlags.3; // floating point divide by zero flag
+           0258 			; //bit FpNAN       @ FpFlags.4; // not-a-number exception flag: NOT USED
+           0259 			; bit FpDomainError @ FpFlags.5; // domain error exception flag
+           0260 			; bit FpRounding    @ FpFlags.6; // floating point rounding flag, 0=truncation
+           0261 			;                                // 1 = unbiased rounding to nearest LSB
+           0262 			; //bit FpSaturate  @ FpFlags.7; // floating point saturate flag: NOT USED
+           0263 			;
+           0264 			; #pragma floatOverflow FpOverflow
+           0265 			; #pragma floatUnderflow FpUnderFlow
+           0266 			;
+           0267 			; #define InitFpFlags()  FpFlags = 0x40 /* enable rounding as default */
+           0268 			;#endif
+           0269 			;
+           0270 			;#ifdef DISABLE_ROUNDING
+           0271 			; #pragma floatRounding 0
+           0272 			;#endif
+           0273 			;
+           0274 			;
+           0275 			;#if __CoreSet__ < 1410
+           0276 			; #define genAdd(r,a) W=a; btsc(Carry); W=incsz(a); r+=W
+           0277 			; #define genSub(r,a) W=a; btss(Carry); W=incsz(a); r-=W
+           0278 			; #define genAddW(r,a) W=a; btsc(Carry); W=incsz(a); W=r+W
+           0279 			; #define genSubW(r,a) W=a; btss(Carry); W=incsz(a); W=r-W
+           0280 			;#else
+           0281 			; #define genAdd(r,a) W=a; r=addWFC(r)
+           0282 			; #define genSub(r,a) W=a; r=subWFB(r)
+           0283 			; #define genAddW(r,a) W=a; W=addWFC(r)
+           0284 			; #define genSubW(r,a) W=a; W=subWFB(r)
+           0285 			;#endif
+           0286 			;
+           0287 			;
+           0288 			;
+           0289 			;float24 operator* _fmul24( sharedM float24 arg1f24, sharedM float24 arg2f24)
+           0290 			;{
+           0291 _fmul24
+           0292 			;    uns16 aarg;
+           0293 			;    W = arg1f24.mid8;
+0022 0831  0294 	MOVF  arg1f24+1,W
+           0295 			;    aarg.high8 = W;
+0023 00B7  0296 	MOVWF aarg+1
+           0297 			;
+           0298 			;    // save sign
+           0299 			;    char sign = arg2f24.mid8 ^ W;  // before first overflow test
+CC5X Version 3.2,   File: RPM.c                5. Sep 2011  12:50   Page 6
+
+ADDR CODE  LINE SOURCE
+
+0024 0634  0300 	XORWF arg2f24+1,W
+0025 00B8  0301 	MOVWF sign
+           0302 			;
+           0303 			;    W = arg1f24.high8;
+0026 0832  0304 	MOVF  arg1f24+2,W
+           0305 			;    if (!Zero_)
+0027 1D03  0306 	BTFSS 0x03,Zero_
+           0307 			;        W = arg2f24.high8;
+0028 0835  0308 	MOVF  arg2f24+2,W
+           0309 			;    if (Zero_)
+0029 1903  0310 	BTFSC 0x03,Zero_
+           0311 			;        goto RES0;
+002A 2863  0312 	GOTO  m008
+           0313 			;
+           0314 			;    arg1f24.high8 += W /* arg2f24.high8 */;
+002B 07B2  0315 	ADDWF arg1f24+2,1
+           0316 			;    W = FpBIAS-1;
+002C 307E  0317 	MOVLW .126
+           0318 			;    if (Carry)  {
+002D 1C03  0319 	BTFSS 0x03,Carry
+002E 2833  0320 	GOTO  m002
+           0321 			;        arg1f24.high8 -= W;
+002F 02B2  0322 	SUBWF arg1f24+2,1
+           0323 			;        if (Carry)
+0030 1C03  0324 	BTFSS 0x03,Carry
+0031 2836  0325 	GOTO  m003
+           0326 			;            goto OVERFLOW;
+0032 2865  0327 	GOTO  m009
+           0328 			;    }
+           0329 			;    else  {
+           0330 			;        arg1f24.high8 -= W;
+0033 02B2  0331 m002	SUBWF arg1f24+2,1
+           0332 			;        if (!Carry)
+0034 1C03  0333 	BTFSS 0x03,Carry
+           0334 			;            goto UNDERFLOW;
+0035 2862  0335 	GOTO  m007
+           0336 			;    }
+           0337 			;    aarg.low8 = arg1f24.low8;
+0036 0830  0338 m003	MOVF  arg1f24,W
+0037 00B6  0339 	MOVWF aarg
+           0340 			;
+           0341 			;    aarg.15 = 1;
+0038 17B7  0342 	BSF   aarg+1,7
+           0343 			;    arg2f24.15 = 1;
+0039 17B4  0344 	BSF   arg2f24+1,7
+           0345 			;
+           0346 			;    arg1f24.low16 = 0;
+003A 01B0  0347 	CLRF  arg1f24
+003B 01B1  0348 	CLRF  arg1f24+1
+           0349 			;
+           0350 			;    char counter = sizeof(aarg)*8;
+003C 3010  0351 	MOVLW .16
+003D 00B9  0352 	MOVWF counter
+           0353 			;
+           0354 			;    do  {
+           0355 			;        aarg = rr( aarg);
+003E 0CB7  0356 m004	RRF   aarg+1,1
+003F 0CB6  0357 	RRF   aarg,1
+           0358 			;        if (Carry)  {
+0040 1C03  0359 	BTFSS 0x03,Carry
+CC5X Version 3.2,   File: RPM.c                5. Sep 2011  12:50   Page 7
+
+ADDR CODE  LINE SOURCE
+
+0041 2848  0360 	GOTO  m005
+           0361 			;            arg1f24.low8 += arg2f24.low8;
+0042 0833  0362 	MOVF  arg2f24,W
+0043 07B0  0363 	ADDWF arg1f24,1
+           0364 			;            genAdd( arg1f24.mid8, arg2f24.mid8);
+0044 0834  0365 	MOVF  arg2f24+1,W
+0045 1803  0366 	BTFSC 0x03,Carry
+0046 0F34  0367 	INCFSZ arg2f24+1,W
+0047 07B1  0368 	ADDWF arg1f24+1,1
+           0369 			;        }
+           0370 			;        arg1f24.low16 = rr( arg1f24.low16);
+0048 0CB1  0371 m005	RRF   arg1f24+1,1
+0049 0CB0  0372 	RRF   arg1f24,1
+           0373 			;    } while (-- counter > 0);
+004A 0BB9  0374 	DECFSZ counter,1
+004B 283E  0375 	GOTO  m004
+           0376 			;
+           0377 			;    if (!arg1f24.15)  {
+004C 1BB1  0378 	BTFSC arg1f24+1,7
+004D 2855  0379 	GOTO  m006
+           0380 			;        // catch Carry bit that was shifted out previously
+           0381 			;        arg1f24.low16 = rl( arg1f24.low16);
+004E 0DB0  0382 	RLF   arg1f24,1
+004F 0DB1  0383 	RLF   arg1f24+1,1
+           0384 			;        if (arg1f24.high8 == 0)
+0050 08B2  0385 	MOVF  arg1f24+2,1
+0051 1903  0386 	BTFSC 0x03,Zero_
+           0387 			;            goto UNDERFLOW;
+0052 2862  0388 	GOTO  m007
+           0389 			;        arg1f24.high8 -= 1;
+0053 03B2  0390 	DECF  arg1f24+2,1
+           0391 			;        W = rl( aarg.high8);
+0054 0D37  0392 	RLF   aarg+1,W
+           0393 			;        // restore bit behind LSB in Carry
+           0394 			;    }
+           0395 			;
+           0396 			;   #ifndef DISABLE_ROUNDING
+           0397 			;    if (FpRounding  &&  Carry)  {
+0055 1F74  0398 m006	BTFSS 0x74,FpRounding
+0056 286B  0399 	GOTO  m011
+0057 1C03  0400 	BTFSS 0x03,Carry
+0058 286B  0401 	GOTO  m011
+           0402 			;        arg1f24.low8 += 1;
+0059 0FB0  0403 	INCFSZ arg1f24,1
+           0404 			;        if (!arg1f24.low8)  {
+005A 286B  0405 	GOTO  m011
+           0406 			;            arg1f24.mid8 += 1;
+005B 0FB1  0407 	INCFSZ arg1f24+1,1
+           0408 			;            if (!arg1f24.mid8)  {
+005C 286B  0409 	GOTO  m011
+           0410 			;                // Carry = 1; //OK
+           0411 			;                arg1f24.low16 = rr( arg1f24.low16);
+005D 0CB1  0412 	RRF   arg1f24+1,1
+005E 0CB0  0413 	RRF   arg1f24,1
+           0414 			;                arg1f24.high8 += 1;
+005F 0FB2  0415 	INCFSZ arg1f24+2,1
+           0416 			;                if (Zero_)
+0060 286B  0417 	GOTO  m011
+           0418 			;                    goto OVERFLOW;
+0061 2865  0419 	GOTO  m009
+CC5X Version 3.2,   File: RPM.c                5. Sep 2011  12:50   Page 8
+
+ADDR CODE  LINE SOURCE
+
+           0420 			;            }
+           0421 			;        }
+           0422 			;    }
+           0423 			;   #endif
+           0424 			;    goto SET_SIGN;
+           0425 			;
+           0426 			;  UNDERFLOW:
+           0427 			;    FpUnderFlow = 1;
+0062 1574  0428 m007	BSF   0x74,FpUnderFlow
+           0429 			;  RES0:
+           0430 			;    arg1f24.high8 = 0;
+0063 01B2  0431 m008	CLRF  arg1f24+2
+           0432 			;    goto MANTISSA;
+0064 2868  0433 	GOTO  m010
+           0434 			;
+           0435 			;  OVERFLOW:
+           0436 			;    FpOverflow = 1;
+0065 14F4  0437 m009	BSF   0x74,FpOverflow
+           0438 			;    arg1f24.high8 = 0xFF;
+0066 30FF  0439 	MOVLW .255
+0067 00B2  0440 	MOVWF arg1f24+2
+           0441 			;  MANTISSA:
+           0442 			;    arg1f24.low16 = 0x8000;
+0068 01B0  0443 m010	CLRF  arg1f24
+0069 3080  0444 	MOVLW .128
+006A 00B1  0445 	MOVWF arg1f24+1
+           0446 			;
+           0447 			;  SET_SIGN:
+           0448 			;    if (!(sign & 0x80))
+006B 1FB8  0449 m011	BTFSS sign,7
+           0450 			;        arg1f24.15 = 0;
+006C 13B1  0451 	BCF   arg1f24+1,7
+           0452 			;    return arg1f24;
+006D 0830  0453 	MOVF  arg1f24,W
+006E 0008  0454 	RETURN
+           0455 			;}
+           0456 			;
+           0457 			;
+           0458 			;
+           0459 			;float24 operator/ _fdiv24( sharedM float24 arg1f24, sharedM float24 arg2f24)
+           0460 			;{
+           0461 _fdiv24
+           0462 			;    uns16 aarg;
+           0463 			;    W = arg1f24.mid8;
+           0464 			;    aarg.high8 = W;
+           0465 			;
+           0466 			;    // save sign
+           0467 			;    char sign = arg2f24.mid8 ^ W;  // before first overflow test
+           0468 			;
+           0469 			;    W = arg2f24.high8;
+           0470 			;    if (Zero_)
+           0471 			;        goto Div0;
+           0472 			;    if (!arg1f24.high8)
+           0473 			;        goto RES0;
+           0474 			;
+           0475 			;    arg1f24.high8 -= arg2f24.high8;
+           0476 			;    W = FpBIAS;
+           0477 			;    if (!Carry)  {
+           0478 			;        arg1f24.high8 += W;
+           0479 			;        if (!Carry)
+CC5X Version 3.2,   File: RPM.c                5. Sep 2011  12:50   Page 9
+
+ADDR CODE  LINE SOURCE
+
+           0480 			;            goto UNDERFLOW;
+           0481 			;    }
+           0482 			;    else  {
+           0483 			;        arg1f24.high8 += W;
+           0484 			;        if (Carry)
+           0485 			;            goto OVERFLOW;
+           0486 			;    }
+           0487 			;
+           0488 			;    aarg.low8 = arg1f24.low8;
+           0489 			;    aarg.15 = 1;
+           0490 			;    arg2f24.15 = 1;
+           0491 			;
+           0492 			;    // division: shift & add
+           0493 			;    char counter = 16;
+           0494 			;    arg1f24.low16 = 0;  // speedup
+           0495 			;
+           0496 			;#if defined FP_OPTIM_SPEED || !defined FP_OPTIM_SIZE  // SPEED
+           0497 			;
+           0498 			;    goto START_ML;
+           0499 			;
+           0500 			;  TEST_ZERO_L:
+           0501 			;    W = aarg.low8 - arg2f24.low8;
+           0502 			;    if (!Carry)
+           0503 			;        goto SHIFT_IN_CARRY;
+           0504 			;    aarg.low8 = W;
+           0505 			;    aarg.high8 = 0;
+           0506 			;    goto SET_AND_SHIFT_IN_CARRY;
+           0507 			;
+           0508 			;// MAIN LOOP
+           0509 			;    do  {
+           0510 			;      LOOP_ML:
+           0511 			;        if (!Carry)  {
+           0512 			;           START_ML:
+           0513 			;            W = aarg.high8 - arg2f24.mid8;
+           0514 			;            if (Zero_)
+           0515 			;                goto TEST_ZERO_L;
+           0516 			;            if (!Carry)
+           0517 			;                goto SHIFT_IN_CARRY;
+           0518 			;        }
+           0519 			;        aarg.low8 -= arg2f24.low8;
+           0520 			;        genSub( aarg.high8, arg2f24.mid8);
+           0521 			;      SET_AND_SHIFT_IN_CARRY:
+           0522 			;        Carry = 1;
+           0523 			;      SHIFT_IN_CARRY:
+           0524 			;        arg1f24.low16 = rl( arg1f24.low16);
+           0525 			;        // Carry = 0;  // ok, speedup
+           0526 			;        aarg = rl( aarg);
+           0527 			;    } while (-- counter > 0);
+           0528 			;
+           0529 			;
+           0530 			;
+           0531 			;#else  // SIZE
+           0532 			;
+           0533 			;    goto START_ML;
+           0534 			;
+           0535 			;// MAIN LOOP
+           0536 			;    do  {
+           0537 			;      LOOP_ML:
+           0538 			;        if (Carry)
+           0539 			;            goto SUBTRACT;
+CC5X Version 3.2,   File: RPM.c                5. Sep 2011  12:50   Page 10
+
+ADDR CODE  LINE SOURCE
+
+           0540 			;      START_ML:
+           0541 			;        W = aarg.low8 - arg2f24.low8;
+           0542 			;        genSubW( aarg.high8, arg2f24.mid8);
+           0543 			;        if (!Carry)
+           0544 			;            goto SKIP_SUB;
+           0545 			;       SUBTRACT:
+           0546 			;        aarg.low8 -= arg2f24.low8;
+           0547 			;        genSub( aarg.high8, arg2f24.mid8);
+           0548 			;        Carry = 1;
+           0549 			;       SKIP_SUB:
+           0550 			;        arg1f24.low16 = rl( arg1f24.low16);
+           0551 			;        // Carry = 0;  // ok
+           0552 			;        aarg = rl( aarg);
+           0553 			;    } while (-- counter > 0);
+           0554 			;
+           0555 			;#endif
+           0556 			;
+           0557 			;    if (!arg1f24.15)  {
+           0558 			;        if (!arg1f24.high8)
+           0559 			;            goto UNDERFLOW;
+           0560 			;        arg1f24.high8 --;
+           0561 			;        counter ++;
+           0562 			;        goto LOOP_ML;
+           0563 			;    }
+           0564 			;
+           0565 			;   #ifndef DISABLE_ROUNDING
+           0566 			;    if (FpRounding)  {
+           0567 			;        if (Carry)
+           0568 			;            goto ADD_1;
+           0569 			;        aarg.low8 -= arg2f24.low8;
+           0570 			;        genSub( aarg.high8, arg2f24.mid8);
+           0571 			;        if (Carry)  {
+           0572 			;          ADD_1:
+           0573 			;            arg1f24.low8 += 1;
+           0574 			;            if (!arg1f24.low8)  {
+           0575 			;                arg1f24.mid8 ++;
+           0576 			;                if (!arg1f24.mid8)  {
+           0577 			;                    arg1f24.low16 = rr( arg1f24.low16);
+           0578 			;                    arg1f24.high8 ++;
+           0579 			;                    if (!arg1f24.high8)
+           0580 			;                        goto OVERFLOW;
+           0581 			;                }
+           0582 			;            }
+           0583 			;        }
+           0584 			;    }
+           0585 			;   #endif
+           0586 			;    goto SET_SIGN;
+           0587 			;
+           0588 			;  Div0:
+           0589 			;    FpDiv0 = 1;
+           0590 			;    goto SATURATE;
+           0591 			;
+           0592 			;  UNDERFLOW:
+           0593 			;    FpUnderFlow = 1;
+           0594 			;  RES0:
+           0595 			;    arg1f24.high8 = 0;
+           0596 			;    goto MANTISSA;
+           0597 			;
+           0598 			;  OVERFLOW:
+           0599 			;    FpOverflow = 1;
+CC5X Version 3.2,   File: RPM.c                5. Sep 2011  12:50   Page 11
+
+ADDR CODE  LINE SOURCE
+
+           0600 			;  SATURATE:
+           0601 			;    arg1f24.high8 = 0xFF;
+           0602 			;  MANTISSA:
+           0603 			;    arg1f24.low16 = 0x8000;
+           0604 			;
+           0605 			;  SET_SIGN:
+           0606 			;    if (!(sign & 0x80))
+           0607 			;        arg1f24.15 = 0;
+           0608 			;    return arg1f24;
+           0609 			;}
+           0610 			;
+           0611 			;
+           0612 			;float24 operator+ _fadd24( sharedM float24 arg1f24, sharedM float24 arg2f24)
+           0613 			;{
+           0614 _fadd24
+           0615 			;    char xtra, temp;
+           0616 			;    char expo = arg1f24.high8 - arg2f24.high8;
+006F 0835  0617 	MOVF  arg2f24+2,W
+0070 0232  0618 	SUBWF arg1f24+2,W
+0071 00B8  0619 	MOVWF expo
+           0620 			;    if (!Carry)  {
+0072 1803  0621 	BTFSC 0x03,Carry
+0073 2888  0622 	GOTO  m012
+           0623 			;        expo = -expo;
+0074 09B8  0624 	COMF  expo,1
+0075 0AB8  0625 	INCF  expo,1
+           0626 			;        temp = arg1f24.high8;
+0076 0832  0627 	MOVF  arg1f24+2,W
+0077 00B7  0628 	MOVWF temp
+           0629 			;        arg1f24.high8 = arg2f24.high8;
+0078 0835  0630 	MOVF  arg2f24+2,W
+0079 00B2  0631 	MOVWF arg1f24+2
+           0632 			;        arg2f24.high8 = temp;
+007A 0837  0633 	MOVF  temp,W
+007B 00B5  0634 	MOVWF arg2f24+2
+           0635 			;        temp = arg1f24.mid8;
+007C 0831  0636 	MOVF  arg1f24+1,W
+007D 00B7  0637 	MOVWF temp
+           0638 			;        arg1f24.mid8 = arg2f24.mid8;
+007E 0834  0639 	MOVF  arg2f24+1,W
+007F 00B1  0640 	MOVWF arg1f24+1
+           0641 			;        arg2f24.mid8 = temp;
+0080 0837  0642 	MOVF  temp,W
+0081 00B4  0643 	MOVWF arg2f24+1
+           0644 			;        temp = arg1f24.low8;
+0082 0830  0645 	MOVF  arg1f24,W
+0083 00B7  0646 	MOVWF temp
+           0647 			;        arg1f24.low8 = arg2f24.low8;
+0084 0833  0648 	MOVF  arg2f24,W
+0085 00B0  0649 	MOVWF arg1f24
+           0650 			;        arg2f24.low8 = temp;
+0086 0837  0651 	MOVF  temp,W
+0087 00B3  0652 	MOVWF arg2f24
+           0653 			;    }
+           0654 			;    if (expo > sizeof(arg1f24)*8-7)
+0088 3012  0655 m012	MOVLW .18
+0089 0238  0656 	SUBWF expo,W
+008A 1803  0657 	BTFSC 0x03,Carry
+           0658 			;        goto _RETURN_MF;
+008B 2905  0659 	GOTO  m030
+CC5X Version 3.2,   File: RPM.c                5. Sep 2011  12:50   Page 12
+
+ADDR CODE  LINE SOURCE
+
+           0660 			;    if (!arg2f24.high8)
+008C 08B5  0661 	MOVF  arg2f24+2,1
+008D 1903  0662 	BTFSC 0x03,Zero_
+           0663 			;        goto _RETURN_MF;   // result is arg1f24
+008E 2905  0664 	GOTO  m030
+           0665 			;
+           0666 			;    xtra = 0;
+008F 01B6  0667 	CLRF  xtra
+           0668 			;
+           0669 			;    temp = arg1f24.mid8;
+0090 0831  0670 	MOVF  arg1f24+1,W
+0091 00B7  0671 	MOVWF temp
+           0672 			;    char sign = arg2f24.mid8 ^ arg1f24.mid8;
+0092 0634  0673 	XORWF arg2f24+1,W
+0093 00B9  0674 	MOVWF sign_3
+           0675 			;    arg1f24.15 = 1;
+0094 17B1  0676 	BSF   arg1f24+1,7
+           0677 			;    arg2f24.15 = 1;
+0095 17B4  0678 	BSF   arg2f24+1,7
+           0679 			;
+           0680 			;    while (1)  {
+           0681 			;        W = 8;
+0096 3008  0682 m013	MOVLW .8
+           0683 			;        expo -= W;
+0097 02B8  0684 	SUBWF expo,1
+           0685 			;        if (!Carry)
+0098 1C03  0686 	BTFSS 0x03,Carry
+           0687 			;            break;
+0099 28A0  0688 	GOTO  m014
+           0689 			;        xtra = arg2f24.low8;
+009A 0833  0690 	MOVF  arg2f24,W
+009B 00B6  0691 	MOVWF xtra
+           0692 			;        arg2f24.low8 = arg2f24.mid8;
+009C 0834  0693 	MOVF  arg2f24+1,W
+009D 00B3  0694 	MOVWF arg2f24
+           0695 			;        arg2f24.mid8 = 0;
+009E 01B4  0696 	CLRF  arg2f24+1
+           0697 			;    }
+009F 2896  0698 	GOTO  m013
+           0699 			;    expo += W;
+00A0 07B8  0700 m014	ADDWF expo,1
+           0701 			;    if (expo)  {
+00A1 1903  0702 	BTFSC 0x03,Zero_
+00A2 28A9  0703 	GOTO  m016
+           0704 			;        do  {
+           0705 			;            Carry = 0;
+00A3 1003  0706 m015	BCF   0x03,Carry
+           0707 			;            arg2f24.low16 = rr( arg2f24.low16);
+00A4 0CB4  0708 	RRF   arg2f24+1,1
+00A5 0CB3  0709 	RRF   arg2f24,1
+           0710 			;            xtra = rr( xtra);
+00A6 0CB6  0711 	RRF   xtra,1
+           0712 			;        } while (--expo > 0);
+00A7 0BB8  0713 	DECFSZ expo,1
+00A8 28A3  0714 	GOTO  m015
+           0715 			;    }
+           0716 			;
+           0717 			;
+           0718 			;    if (sign & 0x80)  {
+00A9 1FB9  0719 m016	BTFSS sign_3,7
+CC5X Version 3.2,   File: RPM.c                5. Sep 2011  12:50   Page 13
+
+ADDR CODE  LINE SOURCE
+
+00AA 28E2  0720 	GOTO  m022
+           0721 			;        // SUBTRACT
+           0722 			;        arg1f24.low8 -= arg2f24.low8;
+00AB 0833  0723 	MOVF  arg2f24,W
+00AC 02B0  0724 	SUBWF arg1f24,1
+           0725 			;        genSub( arg1f24.mid8, arg2f24.mid8);
+00AD 0834  0726 	MOVF  arg2f24+1,W
+00AE 1C03  0727 	BTFSS 0x03,Carry
+00AF 0F34  0728 	INCFSZ arg2f24+1,W
+00B0 02B1  0729 	SUBWF arg1f24+1,1
+           0730 			;        if (!Carry)  {  // arg2f24 > arg1f24
+00B1 1803  0731 	BTFSC 0x03,Carry
+00B2 28BA  0732 	GOTO  m017
+           0733 			;            arg1f24.low16 = -arg1f24.low16;
+00B3 09B1  0734 	COMF  arg1f24+1,1
+00B4 09B0  0735 	COMF  arg1f24,1
+00B5 0AB0  0736 	INCF  arg1f24,1
+00B6 1903  0737 	BTFSC 0x03,Zero_
+00B7 0AB1  0738 	INCF  arg1f24+1,1
+           0739 			;            // xtra == 0 because arg1f24.exp == arg2f24.exp
+           0740 			;            temp ^= 0x80;  // invert sign
+00B8 3080  0741 	MOVLW .128
+00B9 06B7  0742 	XORWF temp,1
+           0743 			;        }
+           0744 			;        xtra = -xtra;
+00BA 09B6  0745 m017	COMF  xtra,1
+00BB 0AB6  0746 	INCF  xtra,1
+           0747 			;        if (xtra)
+00BC 1903  0748 	BTFSC 0x03,Zero_
+00BD 28C2  0749 	GOTO  m018
+           0750 			;            arg1f24.low16 --;
+00BE 03B0  0751 	DECF  arg1f24,1
+00BF 0A30  0752 	INCF  arg1f24,W
+00C0 1903  0753 	BTFSC 0x03,Zero_
+00C1 03B1  0754 	DECF  arg1f24+1,1
+           0755 			;        // adjust result left
+           0756 			;       #define counter expo
+           0757 			;        counter = 3;
+00C2 3003  0758 m018	MOVLW .3
+00C3 00B8  0759 	MOVWF expo
+           0760 			;        while (!arg1f24.mid8)  {
+00C4 08B1  0761 m019	MOVF  arg1f24+1,1
+00C5 1D03  0762 	BTFSS 0x03,Zero_
+00C6 28D3  0763 	GOTO  m020
+           0764 			;            arg1f24.mid8 = arg1f24.low8;
+00C7 0830  0765 	MOVF  arg1f24,W
+00C8 00B1  0766 	MOVWF arg1f24+1
+           0767 			;            arg1f24.low8 = xtra;
+00C9 0836  0768 	MOVF  xtra,W
+00CA 00B0  0769 	MOVWF arg1f24
+           0770 			;            xtra = 0;
+00CB 01B6  0771 	CLRF  xtra
+           0772 			;            arg1f24.high8 -= 8;
+00CC 3008  0773 	MOVLW .8
+00CD 02B2  0774 	SUBWF arg1f24+2,1
+           0775 			;            if (!Carry)
+00CE 1C03  0776 	BTFSS 0x03,Carry
+           0777 			;                goto RES0;
+00CF 28FB  0778 	GOTO  m026
+           0779 			;            if (--counter == 0)  // max 2 iterations
+CC5X Version 3.2,   File: RPM.c                5. Sep 2011  12:50   Page 14
+
+ADDR CODE  LINE SOURCE
+
+00D0 0BB8  0780 	DECFSZ expo,1
+00D1 28C4  0781 	GOTO  m019
+           0782 			;                goto RES0;
+00D2 28FB  0783 	GOTO  m026
+           0784 			;        }
+           0785 			;       #undef counter
+           0786 			;        while (!arg1f24.15)  {
+00D3 1BB1  0787 m020	BTFSC arg1f24+1,7
+00D4 28DC  0788 	GOTO  m021
+           0789 			;            Carry = 0;
+00D5 1003  0790 	BCF   0x03,Carry
+           0791 			;            xtra = rl( xtra);
+00D6 0DB6  0792 	RLF   xtra,1
+           0793 			;            arg1f24.low16 = rl( arg1f24.low16);
+00D7 0DB0  0794 	RLF   arg1f24,1
+00D8 0DB1  0795 	RLF   arg1f24+1,1
+           0796 			;            arg1f24.high8 --;
+00D9 0BB2  0797 	DECFSZ arg1f24+2,1
+           0798 			;            if (!arg1f24.high8)
+00DA 28D3  0799 	GOTO  m020
+           0800 			;                goto RES0;   // UNDERFLOW?
+00DB 28FB  0801 	GOTO  m026
+           0802 			;        }
+           0803 			;       #ifndef DISABLE_ROUNDING
+           0804 			;        if (FpRounding  &&  (xtra & 0x80))  {
+00DC 1F74  0805 m021	BTFSS 0x74,FpRounding
+00DD 2903  0806 	GOTO  m029
+00DE 1FB6  0807 	BTFSS xtra,7
+00DF 2903  0808 	GOTO  m029
+           0809 			;            xtra = 0; // disable recursion
+00E0 01B6  0810 	CLRF  xtra
+           0811 			;            goto INCREMENT;
+00E1 28F4  0812 	GOTO  m025
+           0813 			;        }
+           0814 			;       #endif
+           0815 			;    }
+           0816 			;    else  {
+           0817 			;        // ADD arg1f24 and arg2f24
+           0818 			;        arg1f24.low8 += arg2f24.low8;
+00E2 0833  0819 m022	MOVF  arg2f24,W
+00E3 07B0  0820 	ADDWF arg1f24,1
+           0821 			;        genAdd( arg1f24.mid8, arg2f24.mid8);
+00E4 0834  0822 	MOVF  arg2f24+1,W
+00E5 1803  0823 	BTFSC 0x03,Carry
+00E6 0F34  0824 	INCFSZ arg2f24+1,W
+00E7 07B1  0825 	ADDWF arg1f24+1,1
+           0826 			;        if (Carry)  {
+00E8 1C03  0827 	BTFSS 0x03,Carry
+00E9 28F0  0828 	GOTO  m024
+           0829 			;          ADJUST_RIGHT:
+           0830 			;            arg1f24.low16 = rr( arg1f24.low16);
+00EA 0CB1  0831 m023	RRF   arg1f24+1,1
+00EB 0CB0  0832 	RRF   arg1f24,1
+           0833 			;            xtra = rr( xtra);
+00EC 0CB6  0834 	RRF   xtra,1
+           0835 			;            arg1f24.high8 += 1;  // exp
+00ED 0AB2  0836 	INCF  arg1f24+2,1
+           0837 			;            if (!arg1f24.high8)
+00EE 1903  0838 	BTFSC 0x03,Zero_
+           0839 			;                goto OVERFLOW;
+CC5X Version 3.2,   File: RPM.c                5. Sep 2011  12:50   Page 15
+
+ADDR CODE  LINE SOURCE
+
+00EF 28FD  0840 	GOTO  m027
+           0841 			;        }
+           0842 			;       #ifndef DISABLE_ROUNDING
+           0843 			;        if (FpRounding  &&  (xtra & 0x80))  {
+00F0 1F74  0844 m024	BTFSS 0x74,FpRounding
+00F1 2903  0845 	GOTO  m029
+00F2 1FB6  0846 	BTFSS xtra,7
+00F3 2903  0847 	GOTO  m029
+           0848 			;          INCREMENT:
+           0849 			;            arg1f24.low8 += 1;
+00F4 0FB0  0850 m025	INCFSZ arg1f24,1
+           0851 			;            if (!arg1f24.low8)  {
+00F5 2903  0852 	GOTO  m029
+           0853 			;                arg1f24.mid8 += 1;
+00F6 0FB1  0854 	INCFSZ arg1f24+1,1
+           0855 			;                if (!arg1f24.mid8)  {
+00F7 2903  0856 	GOTO  m029
+           0857 			;                    Carry = 1; // prepare for shift
+00F8 1403  0858 	BSF   0x03,Carry
+           0859 			;                    arg1f24.0 = 0;  // disable recursion
+00F9 1030  0860 	BCF   arg1f24,0
+           0861 			;                    goto ADJUST_RIGHT;
+00FA 28EA  0862 	GOTO  m023
+           0863 			;                }
+           0864 			;            }
+           0865 			;        }
+           0866 			;       #endif
+           0867 			;    }
+           0868 			;    goto SET_SIGN;
+           0869 			;
+           0870 			;//  UNDERFLOW:
+           0871 			;//    FpUnderFlow = 1;
+           0872 			;  RES0:
+           0873 			;    arg1f24.high8 = 0;
+00FB 01B2  0874 m026	CLRF  arg1f24+2
+           0875 			;    goto MANTISSA;
+00FC 2900  0876 	GOTO  m028
+           0877 			;
+           0878 			;  OVERFLOW:
+           0879 			;    FpOverflow = 1;
+00FD 14F4  0880 m027	BSF   0x74,FpOverflow
+           0881 			;    arg1f24.high8 = 0xFF;
+00FE 30FF  0882 	MOVLW .255
+00FF 00B2  0883 	MOVWF arg1f24+2
+           0884 			;  MANTISSA:
+           0885 			;    arg1f24.low16 = 0x8000;
+0100 01B0  0886 m028	CLRF  arg1f24
+0101 3080  0887 	MOVLW .128
+0102 00B1  0888 	MOVWF arg1f24+1
+           0889 			;
+           0890 			;  SET_SIGN:
+           0891 			;    if (!(temp & 0x80))
+0103 1FB7  0892 m029	BTFSS temp,7
+           0893 			;        arg1f24.15 = 0;
+0104 13B1  0894 	BCF   arg1f24+1,7
+           0895 			;
+           0896 			;  _RETURN_MF:
+           0897 			;    return arg1f24;
+0105 0830  0898 m030	MOVF  arg1f24,W
+0106 0008  0899 	RETURN
+CC5X Version 3.2,   File: RPM.c                5. Sep 2011  12:50   Page 16
+
+ADDR CODE  LINE SOURCE
+
+           0900 			;}
+           0901 			;
+           0902 			;
+           0903 			;// SUBTRACTION
+           0904 			;
+           0905 			;float24 operator- _fsub24( sharedM float24 arg1f24, sharedM float24 arg2f24)
+           0906 			;{
+           0907 _fsub24
+           0908 			;    arg2f24.mid8 ^= 0x80;
+0107 3080  0909 	MOVLW .128
+0108 06B4  0910 	XORWF arg2f24+1,1
+           0911 			;    arg1f24 += arg2f24;
+0109 206F  0912 	CALL  _fadd24
+           0913 			;    return arg1f24;
+010A 0830  0914 	MOVF  arg1f24,W
+010B 0008  0915 	RETURN
+           0916 			;}
+           0917 			;
+           0918 			;
+           0919 			;float24 operator=( int8 arg) @
+           0920 			;float24 operator=( uns8 arg) @
+           0921 			;float24 operator=( int16 arg) @
+           0922 			;float24 operator=( uns16 arg) @
+           0923 			;float24 operator= _int24ToFloat24( sharedM int24 arg1f24)
+           0924 			;{
+           0925 _int24ToFloat24
+           0926 			;    sharedM float24 arg2f24;   // unused, but required
+           0927 			;    char expo = FpBIAS + 16 - 1;
+010C 308E  0928 	MOVLW .142
+010D 00B6  0929 	MOVWF expo_2
+           0930 			;    char xtra = 0;
+010E 01B7  0931 	CLRF  xtra_2
+           0932 			;    char sign = 0;
+010F 01B8  0933 	CLRF  sign_4
+           0934 			;    if (arg1f24 < 0)  {
+0110 1FB2  0935 	BTFSS arg1f24+2,7
+0111 291B  0936 	GOTO  m032
+           0937 			;        arg1f24 = -arg1f24;
+0112 09B2  0938 	COMF  arg1f24+2,1
+0113 09B1  0939 	COMF  arg1f24+1,1
+0114 09B0  0940 	COMF  arg1f24,1
+0115 0FB0  0941 	INCFSZ arg1f24,1
+0116 291A  0942 	GOTO  m031
+0117 0AB1  0943 	INCF  arg1f24+1,1
+0118 1903  0944 	BTFSC 0x03,Zero_
+0119 0AB2  0945 	INCF  arg1f24+2,1
+           0946 			;        sign |= 0x80;
+011A 17B8  0947 m031	BSF   sign_4,7
+           0948 			;    }
+           0949 			;    if (arg1f24.high8)  {
+011B 08B2  0950 m032	MOVF  arg1f24+2,1
+011C 1903  0951 	BTFSC 0x03,Zero_
+011D 2927  0952 	GOTO  m033
+           0953 			;        expo += 8;
+011E 3008  0954 	MOVLW .8
+011F 07B6  0955 	ADDWF expo_2,1
+           0956 			;        xtra = arg1f24.low8;
+0120 0830  0957 	MOVF  arg1f24,W
+0121 00B7  0958 	MOVWF xtra_2
+           0959 			;        arg1f24.low8 = arg1f24.mid8;
+CC5X Version 3.2,   File: RPM.c                5. Sep 2011  12:50   Page 17
+
+ADDR CODE  LINE SOURCE
+
+0122 0831  0960 	MOVF  arg1f24+1,W
+0123 00B0  0961 	MOVWF arg1f24
+           0962 			;        arg1f24.mid8 = arg1f24.high8;
+0124 0832  0963 	MOVF  arg1f24+2,W
+0125 00B1  0964 	MOVWF arg1f24+1
+           0965 			;    }
+           0966 			;    else if (!arg1f24.mid8)  {
+0126 2936  0967 	GOTO  m035
+0127 08B1  0968 m033	MOVF  arg1f24+1,1
+0128 1D03  0969 	BTFSS 0x03,Zero_
+0129 2936  0970 	GOTO  m035
+           0971 			;        expo -= 8;
+012A 3008  0972 	MOVLW .8
+012B 02B6  0973 	SUBWF expo_2,1
+           0974 			;        W = arg1f24.low8;
+012C 0830  0975 	MOVF  arg1f24,W
+           0976 			;        if (!W)
+012D 1903  0977 	BTFSC 0x03,Zero_
+           0978 			;            goto _RETURN_MF;
+012E 2948  0979 	GOTO  m037
+           0980 			;        arg1f24.mid8 = W;
+012F 00B1  0981 	MOVWF arg1f24+1
+           0982 			;        arg1f24.low8 = 0;
+0130 01B0  0983 	CLRF  arg1f24
+           0984 			;    }
+           0985 			;
+           0986 			;    // arg1f24.mid8 != 0
+           0987 			;    goto TEST_ARG1_B15;
+0131 2936  0988 	GOTO  m035
+           0989 			;    do  {
+           0990 			;        xtra = rl( xtra);
+0132 0DB7  0991 m034	RLF   xtra_2,1
+           0992 			;        arg1f24.low16 = rl( arg1f24.low16);
+0133 0DB0  0993 	RLF   arg1f24,1
+0134 0DB1  0994 	RLF   arg1f24+1,1
+           0995 			;        expo --;
+0135 03B6  0996 	DECF  expo_2,1
+           0997 			;      TEST_ARG1_B15:
+           0998 			;    } while (!arg1f24.15);
+0136 1FB1  0999 m035	BTFSS arg1f24+1,7
+0137 2932  1000 	GOTO  m034
+           1001 			;
+           1002 			;   #ifndef DISABLE_ROUNDING
+           1003 			;    if (FpRounding && (xtra & 0x80))  {
+0138 1F74  1004 	BTFSS 0x74,FpRounding
+0139 2944  1005 	GOTO  m036
+013A 1FB7  1006 	BTFSS xtra_2,7
+013B 2944  1007 	GOTO  m036
+           1008 			;        arg1f24.low8 += 1;
+013C 0FB0  1009 	INCFSZ arg1f24,1
+           1010 			;        if (!arg1f24.low8)  {
+013D 2944  1011 	GOTO  m036
+           1012 			;            arg1f24.mid8 += 1;
+013E 0FB1  1013 	INCFSZ arg1f24+1,1
+           1014 			;            if (!arg1f24.mid8)  {
+013F 2944  1015 	GOTO  m036
+           1016 			;                Carry = 1;
+0140 1403  1017 	BSF   0x03,Carry
+           1018 			;                arg1f24.low16 = rr( arg1f24.low16);
+0141 0CB1  1019 	RRF   arg1f24+1,1
+CC5X Version 3.2,   File: RPM.c                5. Sep 2011  12:50   Page 18
+
+ADDR CODE  LINE SOURCE
+
+0142 0CB0  1020 	RRF   arg1f24,1
+           1021 			;                expo ++;
+0143 0AB6  1022 	INCF  expo_2,1
+           1023 			;            }
+           1024 			;        }
+           1025 			;    }
+           1026 			;   #endif
+           1027 			;
+           1028 			;    arg1f24.high8 = expo;
+0144 0836  1029 m036	MOVF  expo_2,W
+0145 00B2  1030 	MOVWF arg1f24+2
+           1031 			;    if (!(sign & 0x80))
+0146 1FB8  1032 	BTFSS sign_4,7
+           1033 			;        arg1f24.15 = 0;
+0147 13B1  1034 	BCF   arg1f24+1,7
+           1035 			;
+           1036 			;  _RETURN_MF:
+           1037 			;    float24 rval @ arg1f24;
+           1038 			;    rval.low24 = arg1f24.low24;
+           1039 			;    return rval;
+0148 0830  1040 m037	MOVF  rval,W
+0149 0008  1041 	RETURN
+           1042 			;}
+           1043 			;
+           1044 			;
+           1045 			;float24 operator=( uns24 arg) @
+           1046 			;float24 operator= _int32ToFloat24( int32 arg32)
+           1047 			;{
+           1048 _int32ToFloat24
+           1049 			;    char expo = FpBIAS + 16 - 1;
+           1050 			;    char xtra @ arg32.high8;
+           1051 			;    char sign = 0;
+           1052 			;    if (arg32 < 0)  {
+           1053 			;        arg32 = -arg32;
+           1054 			;        sign |= 0x80;
+           1055 			;    }
+           1056 			;    if (arg32.high8)  {
+           1057 			;        expo += 8;
+           1058 			;        arg32.low8 = arg32.midL8;
+           1059 			;        arg32.midL8 = arg32.midH8;
+           1060 			;        arg32.midH8 = arg32.high8;
+           1061 			;        arg32.high8 = 0;
+           1062 			;    }
+           1063 			;    if (arg32.midH8)  {
+           1064 			;        expo += 8;
+           1065 			;        xtra = arg32.low8;
+           1066 			;        arg32.low8 = arg32.midL8;
+           1067 			;        arg32.midL8 = arg32.midH8;
+           1068 			;    }
+           1069 			;    else if (!arg32.midL8)  {
+           1070 			;        expo -= 8;
+           1071 			;        W = arg32.low8;
+           1072 			;        if (!W)
+           1073 			;            goto _RETURN_MF;
+           1074 			;        arg32.midL8 = W;
+           1075 			;        arg32.low8 = 0;
+           1076 			;    }
+           1077 			;
+           1078 			;    // arg32.midL8 != 0
+           1079 			;    goto TEST_ARG_B15;
+CC5X Version 3.2,   File: RPM.c                5. Sep 2011  12:50   Page 19
+
+ADDR CODE  LINE SOURCE
+
+           1080 			;    do  {
+           1081 			;        xtra = rl( xtra);
+           1082 			;        arg32.low16 = rl( arg32.low16);
+           1083 			;        expo --;
+           1084 			;      TEST_ARG_B15:
+           1085 			;    } while (!arg32.15);
+           1086 			;
+           1087 			;   #ifndef DISABLE_ROUNDING
+           1088 			;    if (FpRounding && (xtra & 0x80))  {
+           1089 			;        arg32.low8 += 1;
+           1090 			;        if (!arg32.low8)  {
+           1091 			;            arg32.midL8 += 1;
+           1092 			;            if (!arg32.midL8)  {
+           1093 			;                Carry = 1;
+           1094 			;                arg32.low16 = rr( arg32.low16);
+           1095 			;                expo ++;
+           1096 			;            }
+           1097 			;        }
+           1098 			;    }
+           1099 			;   #endif
+           1100 			;
+           1101 			;    arg32.midH8 = expo;
+           1102 			;    if (!(sign & 0x80))
+           1103 			;        arg32.15 = 0;
+           1104 			;
+           1105 			;  _RETURN_MF:
+           1106 			;    float24 rval @ arg32;
+           1107 			;    rval.low24 = arg32.low24;
+           1108 			;    return rval;
+           1109 			;}
+           1110 			;
+           1111 			;
+           1112 			;uns8 operator=( sharedM float24 arg1f24) @
+           1113 			;int8 operator=( sharedM float24 arg1f24) @
+           1114 			;uns16 operator=( sharedM float24 arg1f24) @
+           1115 			;int16 operator=( sharedM float24 arg1f24) @
+           1116 			;int24 operator= _float24ToInt24( sharedM float24 arg1f24)
+           1117 			;{
+           1118 _float24ToInt24
+           1119 			;    sharedM float24 arg2f24;   // unused, but required
+           1120 			;    char sign = arg1f24.mid8;
+014A 0831  1121 	MOVF  arg1f24+1,W
+014B 00B6  1122 	MOVWF sign_6
+           1123 			;    char expo = arg1f24.high8 - (FpBIAS-1);
+014C 307E  1124 	MOVLW .126
+014D 0232  1125 	SUBWF arg1f24+2,W
+014E 00B7  1126 	MOVWF expo_4
+           1127 			;    if (!Carry)
+014F 1C03  1128 	BTFSS 0x03,Carry
+           1129 			;        goto RES0;
+0150 297B  1130 	GOTO  m043
+           1131 			;    arg1f24.15 = 1;
+0151 17B1  1132 	BSF   arg1f24+1,7
+           1133 			;
+           1134 			;    arg1f24.high8 = 0;
+0152 01B2  1135 	CLRF  arg1f24+2
+           1136 			;   #ifndef DISABLE_ROUNDING
+           1137 			;    char xtra = 0;
+0153 01B8  1138 	CLRF  xtra_4
+           1139 			;   #endif
+CC5X Version 3.2,   File: RPM.c                5. Sep 2011  12:50   Page 20
+
+ADDR CODE  LINE SOURCE
+
+           1140 			;
+           1141 			;    // (a): expo = 0..8 : shift 1 byte to the right
+           1142 			;    // (b): expo = 9..16: shift 0 byte
+           1143 			;    // (c): expo = 17..24: shift 1 byte to the left
+           1144 			;   #if __CoreSet__ / 100 == 12
+           1145 			;    expo -= 17;
+           1146 			;    expo = 0xFF - expo;  // COMF (Carry unchanged)
+           1147 			;    if (Carry)  {  // (c)
+           1148 			;   #else
+           1149 			;    expo = 16 - expo;
+0154 3C10  1150 	SUBLW .16
+0155 00B7  1151 	MOVWF expo_4
+           1152 			;    if (!Carry)  {  // (c)
+0156 1803  1153 	BTFSC 0x03,Carry
+0157 2962  1154 	GOTO  m038
+           1155 			;   #endif
+           1156 			;        expo += 8;
+0158 3008  1157 	MOVLW .8
+0159 07B7  1158 	ADDWF expo_4,1
+           1159 			;        if (!Carry)
+015A 1C03  1160 	BTFSS 0x03,Carry
+           1161 			;            goto OVERFLOW;
+015B 2978  1162 	GOTO  m042
+           1163 			;        arg1f24.high8 = arg1f24.mid8;
+015C 0831  1164 	MOVF  arg1f24+1,W
+015D 00B2  1165 	MOVWF arg1f24+2
+           1166 			;        arg1f24.mid8 = arg1f24.low8;
+015E 0830  1167 	MOVF  arg1f24,W
+015F 00B1  1168 	MOVWF arg1f24+1
+           1169 			;        arg1f24.low8 = 0;
+0160 01B0  1170 	CLRF  arg1f24
+           1171 			;    }
+           1172 			;    else  {  // (a) (b)
+0161 296C  1173 	GOTO  m039
+           1174 			;        // expo = 0 .. 16
+           1175 			;        W = expo - 8;
+0162 3008  1176 m038	MOVLW .8
+0163 0237  1177 	SUBWF expo_4,W
+           1178 			;        if (Carry)  {  // (a)
+0164 1C03  1179 	BTFSS 0x03,Carry
+0165 296C  1180 	GOTO  m039
+           1181 			;            expo = W;
+0166 00B7  1182 	MOVWF expo_4
+           1183 			;           #ifndef DISABLE_ROUNDING
+           1184 			;            xtra = arg1f24.low8;
+0167 0830  1185 	MOVF  arg1f24,W
+0168 00B8  1186 	MOVWF xtra_4
+           1187 			;           #endif
+           1188 			;            arg1f24.low8 = arg1f24.mid8;
+0169 0831  1189 	MOVF  arg1f24+1,W
+016A 00B0  1190 	MOVWF arg1f24
+           1191 			;            arg1f24.mid8 = 0;
+016B 01B1  1192 	CLRF  arg1f24+1
+           1193 			;        }
+           1194 			;    }
+           1195 			;    if (expo)  {
+016C 08B7  1196 m039	MOVF  expo_4,1
+016D 1903  1197 	BTFSC 0x03,Zero_
+016E 2976  1198 	GOTO  m041
+           1199 			;        do  {
+CC5X Version 3.2,   File: RPM.c                5. Sep 2011  12:50   Page 21
+
+ADDR CODE  LINE SOURCE
+
+           1200 			;            Carry = 0;
+016F 1003  1201 m040	BCF   0x03,Carry
+           1202 			;            arg1f24.high8 = rr( arg1f24.high8);
+0170 0CB2  1203 	RRF   arg1f24+2,1
+           1204 			;            arg1f24.low16 = rr( arg1f24.low16);
+0171 0CB1  1205 	RRF   arg1f24+1,1
+0172 0CB0  1206 	RRF   arg1f24,1
+           1207 			;           #ifndef DISABLE_ROUNDING
+           1208 			;            xtra = rr( xtra);
+0173 0CB8  1209 	RRF   xtra_4,1
+           1210 			;           #endif
+           1211 			;        } while (--expo);
+0174 0BB7  1212 	DECFSZ expo_4,1
+0175 296F  1213 	GOTO  m040
+           1214 			;    }
+           1215 			;    if (arg1f24.23)  {
+0176 1FB2  1216 m041	BTFSS arg1f24+2,7
+0177 2981  1217 	GOTO  m045
+           1218 			;       OVERFLOW:
+           1219 			;        FpOverflow = 1;
+0178 14F4  1220 m042	BSF   0x74,FpOverflow
+           1221 			;        W = 0xFF;
+0179 30FF  1222 	MOVLW .255
+           1223 			;        goto ASSIGNW;
+017A 297C  1224 	GOTO  m044
+           1225 			;       RES0:
+           1226 			;        W = 0;
+017B 0100  1227 m043	CLRW 
+           1228 			;       ASSIGNW:
+           1229 			;        arg1f24.low8 = W;
+017C 00B0  1230 m044	MOVWF arg1f24
+           1231 			;        arg1f24.mid8 = W;
+017D 00B1  1232 	MOVWF arg1f24+1
+           1233 			;        arg1f24.high8 = W;
+017E 00B2  1234 	MOVWF arg1f24+2
+           1235 			;        arg1f24.23 = 0;
+017F 13B2  1236 	BCF   arg1f24+2,7
+           1237 			;    }
+           1238 			;    else  {
+0180 2992  1239 	GOTO  m047
+           1240 			;       #ifndef DISABLE_ROUNDING
+           1241 			;        if (FpRounding && (xtra & 0x80))  {
+0181 1F74  1242 m045	BTFSS 0x74,FpRounding
+0182 2988  1243 	GOTO  m046
+0183 1FB8  1244 	BTFSS xtra_4,7
+0184 2988  1245 	GOTO  m046
+           1246 			;            arg1f24.low8 += 1;
+0185 0AB0  1247 	INCF  arg1f24,1
+           1248 			;            if (!arg1f24.low8)
+0186 1903  1249 	BTFSC 0x03,Zero_
+           1250 			;                arg1f24.mid8 += 1;
+0187 0AB1  1251 	INCF  arg1f24+1,1
+           1252 			;        }
+           1253 			;       #endif
+           1254 			;        if (sign & 0x80)
+0188 1FB6  1255 m046	BTFSS sign_6,7
+0189 2992  1256 	GOTO  m047
+           1257 			;            arg1f24.low24 = -arg1f24.low24;
+018A 09B2  1258 	COMF  arg1f24+2,1
+018B 09B1  1259 	COMF  arg1f24+1,1
+CC5X Version 3.2,   File: RPM.c                5. Sep 2011  12:50   Page 22
+
+ADDR CODE  LINE SOURCE
+
+018C 09B0  1260 	COMF  arg1f24,1
+018D 0FB0  1261 	INCFSZ arg1f24,1
+018E 2992  1262 	GOTO  m047
+018F 0AB1  1263 	INCF  arg1f24+1,1
+0190 1903  1264 	BTFSC 0x03,Zero_
+0191 0AB2  1265 	INCF  arg1f24+2,1
+           1266 			;    }
+           1267 			;    int24 rval @ arg1f24;
+           1268 			;    rval = arg1f24.low24;
+           1269 			;    return rval;
+0192 0830  1270 m047	MOVF  rval_3,W
+0193 0008  1271 	RETURN
+           1272 			;}
+           1273 			;
+           1274 			;
+           1275 			;bit operator< _f24_LT_f24( sharedM float24 arg1f24, sharedM float24 arg2f24)
+           1276 			;{
+           1277 _f24_LT_f24
+           1278 			;    Carry = 0;
+0194 1003  1279 	BCF   0x03,Carry
+           1280 			;    if (!(arg1f24.high8 | arg2f24.high8))
+0195 0835  1281 	MOVF  arg2f24+2,W
+0196 0432  1282 	IORWF arg1f24+2,W
+0197 1903  1283 	BTFSC 0x03,Zero_
+           1284 			;        return Carry;
+0198 0008  1285 	RETURN
+           1286 			;    if (!arg1f24.15)  {
+0199 1BB1  1287 	BTFSC arg1f24+1,7
+019A 29A8  1288 	GOTO  m048
+           1289 			;        if (arg2f24.15)
+019B 1BB4  1290 	BTFSC arg2f24+1,7
+           1291 			;            return Carry;
+019C 0008  1292 	RETURN
+           1293 			;        W = arg1f24.low8 - arg2f24.low8;
+019D 0833  1294 	MOVF  arg2f24,W
+019E 0230  1295 	SUBWF arg1f24,W
+           1296 			;        genSubW( arg1f24.mid8, arg2f24.mid8);
+019F 0834  1297 	MOVF  arg2f24+1,W
+01A0 1C03  1298 	BTFSS 0x03,Carry
+01A1 0F34  1299 	INCFSZ arg2f24+1,W
+01A2 0231  1300 	SUBWF arg1f24+1,W
+           1301 			;        genSubW( arg1f24.high8, arg2f24.high8);
+01A3 0835  1302 	MOVF  arg2f24+2,W
+01A4 1C03  1303 	BTFSS 0x03,Carry
+01A5 0F35  1304 	INCFSZ arg2f24+2,W
+01A6 0232  1305 	SUBWF arg1f24+2,W
+           1306 			;        goto _RETURN_MF;
+01A7 29B4  1307 	GOTO  m049
+           1308 			;    }
+           1309 			;    if (!arg2f24.15)
+01A8 1FB4  1310 m048	BTFSS arg2f24+1,7
+           1311 			;        goto _RETURN_MF;
+01A9 29B4  1312 	GOTO  m049
+           1313 			;    W = arg2f24.low8 - arg1f24.low8;
+01AA 0830  1314 	MOVF  arg1f24,W
+01AB 0233  1315 	SUBWF arg2f24,W
+           1316 			;    genSubW( arg2f24.mid8, arg1f24.mid8);
+01AC 0831  1317 	MOVF  arg1f24+1,W
+01AD 1C03  1318 	BTFSS 0x03,Carry
+01AE 0F31  1319 	INCFSZ arg1f24+1,W
+CC5X Version 3.2,   File: RPM.c                5. Sep 2011  12:50   Page 23
+
+ADDR CODE  LINE SOURCE
+
+01AF 0234  1320 	SUBWF arg2f24+1,W
+           1321 			;    genSubW( arg2f24.high8, arg1f24.high8);
+01B0 0832  1322 	MOVF  arg1f24+2,W
+01B1 1C03  1323 	BTFSS 0x03,Carry
+01B2 0F32  1324 	INCFSZ arg1f24+2,W
+01B3 0235  1325 	SUBWF arg2f24+2,W
+           1326 			;  _RETURN_MF:
+           1327 			;    if (Carry)
+01B4 1C03  1328 m049	BTFSS 0x03,Carry
+01B5 29B8  1329 	GOTO  m050
+           1330 			;        return 0;
+01B6 1003  1331 	BCF   0x03,Carry
+01B7 0008  1332 	RETURN
+           1333 			;    return 1;
+01B8 1403  1334 m050	BSF   0x03,Carry
+01B9 0008  1335 	RETURN
+           1336 			;}
+           1337 			;
+           1338 			;
+           1339 			;bit operator>= _f24_GE_f24( sharedM float24 arg1f24, sharedM float24 arg2f24)
+           1340 			;{
+           1341 _f24_GE_f24
+           1342 			;    Carry = 1;
+           1343 			;    if (!(arg1f24.high8 | arg2f24.high8))
+           1344 			;        return Carry;
+           1345 			;    if (!arg1f24.15)  {
+           1346 			;        if (arg2f24.15)
+           1347 			;            return Carry;
+           1348 			;        W = arg1f24.low8 - arg2f24.low8;
+           1349 			;        genSubW( arg1f24.mid8, arg2f24.mid8);
+           1350 			;        genSubW( arg1f24.high8, arg2f24.high8);
+           1351 			;        return Carry;
+           1352 			;    }
+           1353 			;    Carry = 0;
+           1354 			;    if (!arg2f24.15)
+           1355 			;        return Carry;
+           1356 			;    W = arg2f24.low8 - arg1f24.low8;
+           1357 			;    genSubW( arg2f24.mid8, arg1f24.mid8);
+           1358 			;    genSubW( arg2f24.high8, arg1f24.high8);
+           1359 			;    return Carry;
+           1360 			;}
+           1361 			;
+           1362 			;
+           1363 			;
+           1364 			;bit operator> _f24_GT_f24( sharedM float24 arg1f24, sharedM float24 arg2f24)
+           1365 			;{
+           1366 _f24_GT_f24
+           1367 			;    Carry = 0;
+01BA 1003  1368 	BCF   0x03,Carry
+           1369 			;    if (!(arg1f24.high8 | arg2f24.high8))
+01BB 0835  1370 	MOVF  arg2f24+2,W
+01BC 0432  1371 	IORWF arg1f24+2,W
+01BD 1903  1372 	BTFSC 0x03,Zero_
+           1373 			;        return Carry;
+01BE 0008  1374 	RETURN
+           1375 			;    if (!arg1f24.15)  {
+01BF 1BB1  1376 	BTFSC arg1f24+1,7
+01C0 29CE  1377 	GOTO  m051
+           1378 			;        if (arg2f24.15)
+01C1 1BB4  1379 	BTFSC arg2f24+1,7
+CC5X Version 3.2,   File: RPM.c                5. Sep 2011  12:50   Page 24
+
+ADDR CODE  LINE SOURCE
+
+           1380 			;            goto _RETURN_MF;
+01C2 29DA  1381 	GOTO  m052
+           1382 			;        W = arg2f24.low8 - arg1f24.low8;
+01C3 0830  1383 	MOVF  arg1f24,W
+01C4 0233  1384 	SUBWF arg2f24,W
+           1385 			;        genSubW( arg2f24.mid8, arg1f24.mid8);
+01C5 0831  1386 	MOVF  arg1f24+1,W
+01C6 1C03  1387 	BTFSS 0x03,Carry
+01C7 0F31  1388 	INCFSZ arg1f24+1,W
+01C8 0234  1389 	SUBWF arg2f24+1,W
+           1390 			;        genSubW( arg2f24.high8, arg1f24.high8);
+01C9 0832  1391 	MOVF  arg1f24+2,W
+01CA 1C03  1392 	BTFSS 0x03,Carry
+01CB 0F32  1393 	INCFSZ arg1f24+2,W
+01CC 0235  1394 	SUBWF arg2f24+2,W
+           1395 			;        goto _RETURN_MF;
+01CD 29DA  1396 	GOTO  m052
+           1397 			;    }
+           1398 			;    if (!arg2f24.15)
+01CE 1FB4  1399 m051	BTFSS arg2f24+1,7
+           1400 			;        return Carry;
+01CF 0008  1401 	RETURN
+           1402 			;    W = arg1f24.low8 - arg2f24.low8;
+01D0 0833  1403 	MOVF  arg2f24,W
+01D1 0230  1404 	SUBWF arg1f24,W
+           1405 			;    genSubW( arg1f24.mid8, arg2f24.mid8);
+01D2 0834  1406 	MOVF  arg2f24+1,W
+01D3 1C03  1407 	BTFSS 0x03,Carry
+01D4 0F34  1408 	INCFSZ arg2f24+1,W
+01D5 0231  1409 	SUBWF arg1f24+1,W
+           1410 			;    genSubW( arg1f24.high8, arg2f24.high8);
+01D6 0835  1411 	MOVF  arg2f24+2,W
+01D7 1C03  1412 	BTFSS 0x03,Carry
+01D8 0F35  1413 	INCFSZ arg2f24+2,W
+01D9 0232  1414 	SUBWF arg1f24+2,W
+           1415 			;  _RETURN_MF:
+           1416 			;    if (Carry)
+01DA 1C03  1417 m052	BTFSS 0x03,Carry
+01DB 29DE  1418 	GOTO  m053
+           1419 			;        return 0;
+01DC 1003  1420 	BCF   0x03,Carry
+01DD 0008  1421 	RETURN
+           1422 			;    return 1;
+01DE 1403  1423 m053	BSF   0x03,Carry
+01DF 0008  1424 	RETURN
+           1425 			;}
+           1426 			;
+           1427 			;
+           1428 			;
+           1429 			;bit operator<= _f24_LE_f24( sharedM float24 arg1f24, sharedM float24 arg2f24)
+           1430 			;{
+           1431 _f24_LE_f24
+           1432 			;    Carry = 1;
+           1433 			;    if (!(arg1f24.high8 | arg2f24.high8))
+           1434 			;        return Carry;
+           1435 			;    if (!arg1f24.15)  {
+           1436 			;        Carry = 0;
+           1437 			;        if (arg2f24.15)
+           1438 			;            return Carry;
+           1439 			;        W = arg2f24.low8 - arg1f24.low8;
+CC5X Version 3.2,   File: RPM.c                5. Sep 2011  12:50   Page 25
+
+ADDR CODE  LINE SOURCE
+
+           1440 			;        genSubW( arg2f24.mid8, arg1f24.mid8);
+           1441 			;        genSubW( arg2f24.high8, arg1f24.high8);
+           1442 			;        return Carry;
+           1443 			;    }
+           1444 			;    if (!arg2f24.15)
+           1445 			;        return Carry;
+           1446 			;    W = arg1f24.low8 - arg2f24.low8;
+           1447 			;    genSubW( arg1f24.mid8, arg2f24.mid8);
+           1448 			;    genSubW( arg1f24.high8, arg2f24.high8);
+           1449 			;    return Carry;
+           1450 
+           1451   ; FILE RPM.c
+           1452 			;
+           1453 			;#include "Math24f.h"
+           1454 			;
+           1455 			;void main(void) {
+           1456 main
+           1457 			;
+           1458 			;	InitialiseHardware();
+01E0 1683  1459 	BSF   0x03,RP0
+01E1 1303  1460 	BCF   0x03,RP1
+01E2 21E7  1461 	CALL  InitialiseHardware
+           1462 			;	InitialiseGlobals();
+01E3 1283  1463 	BCF   0x03,RP0
+01E4 2213  1464 	CALL  InitialiseGlobals
+           1465 			;
+           1466 			;	while (1) {
+           1467 			;		GetA2D();
+01E5 22F1  1468 m054	CALL  GetA2D
+           1469 			;	}
+01E6 29E5  1470 	GOTO  m054
+           1471 			;}// end main()
+           1472 			;
+           1473 			;
+           1474 			;void InitialiseHardware(void) {
+           1475 InitialiseHardware
+           1476 			;  	TRISA  = 0b00100011; 				// PORTA (0 = OUTPUT)
+01E7 3023  1477 	MOVLW .35
+01E8 0085  1478 	MOVWF TRISA
+           1479 			;	PORTA  = 0b11011100;				// Initialise PORTA
+01E9 30DC  1480 	MOVLW .220
+01EA 1283  1481 	BCF   0x03,RP0
+01EB 0085  1482 	MOVWF PORTA
+           1483 			;	TRISB  = 0b11000000;      			// PORTB (0 = OUTPUT)
+01EC 30C0  1484 	MOVLW .192
+01ED 1683  1485 	BSF   0x03,RP0
+01EE 0086  1486 	MOVWF TRISB
+           1487 			;	PORTB  = 0b00000000;				// Initialise PORTB
+01EF 1283  1488 	BCF   0x03,RP0
+01F0 0186  1489 	CLRF  PORTB
+           1490 			;	OPTION = 0b10001000;   				// No weak pull ups, prescaler assigned to WDT								
+                   			(checked ok)
+01F1 3088  1491 	MOVLW .136
+01F2 1683  1492 	BSF   0x03,RP0
+01F3 0081  1493 	MOVWF OPTION_REG
+           1494 			;   	INTCON = 0b11000000;				// TMR2 used to provide 1ms ticks.									
+                   					(checked ok)
+01F4 30C0  1495 	MOVLW .192
+01F5 008B  1496 	MOVWF INTCON
+           1497 			;	CMCON  = 0b00000111;				// Enable RA0:3 as Digital Inputs									
+CC5X Version 3.2,   File: RPM.c                5. Sep 2011  12:50   Page 26
+
+ADDR CODE  LINE SOURCE
+
+                   					(checked ok)
+01F6 3007  1498 	MOVLW .7
+01F7 009C  1499 	MOVWF CMCON
+           1500 			;	PCON   = 0b00000000;				// 													
+                   (checked ok)
+01F8 018E  1501 	CLRF  PCON
+           1502 			;
+           1503 			;	OSCCON = 0b01101100;				// 4MHz internal oscillator
+01F9 306C  1504 	MOVLW .108
+01FA 008F  1505 	MOVWF OSCCON
+           1506 			;
+           1507 			;	T2CON  = 0b00010101;				// TMR2 on, prescale = 1:4, and postscale = 1:2  (8us ticks with 4MHz oscillator) 		(check t
+                   his for 8MHz)
+01FB 3015  1508 	MOVLW .21
+01FC 1283  1509 	BCF   0x03,RP0
+01FD 0092  1510 	MOVWF T2CON
+           1511 			;	PIE1   = 0b00000010;				// Bit 1 enables TMR2 = PR2 interface
+01FE 3002  1512 	MOVLW .2
+01FF 1683  1513 	BSF   0x03,RP0
+0200 008C  1514 	MOVWF PIE1
+           1515 			;	PIR1   = 0b00000000;				// Read this to see if TMR2 = PR2 flag is set
+0201 1283  1516 	BCF   0x03,RP0
+0202 018C  1517 	CLRF  PIR1
+           1518 			;	PR2 = 250;							// TMR2 match value, for 2ms ticks
+0203 30FA  1519 	MOVLW .250
+0204 1683  1520 	BSF   0x03,RP0
+0205 0092  1521 	MOVWF PR2
+           1522 			;	MC14543_LD_CTRL = 0;				// Disable loads to BCD driver
+0206 1283  1523 	BCF   0x03,RP0
+0207 1286  1524 	BCF   PORTB,5
+           1525 			;	MC14543_BI_CTRL = 0;				// 1 Blanks display
+0208 1206  1526 	BCF   PORTB,4
+           1527 			;
+           1528 			;	ANSEL 	= 0x01;						// Select AN0
+0209 3001  1529 	MOVLW .1
+020A 1683  1530 	BSF   0x03,RP0
+020B 009B  1531 	MOVWF ANSEL
+           1532 			;	ADCON0	= 0x81;						// Tosc / 32, A/D on	
+020C 3081  1533 	MOVLW .129
+020D 1283  1534 	BCF   0x03,RP0
+020E 009F  1535 	MOVWF ADCON0
+           1536 			;	ADCON1 	= 0x80;						// Set MSB of ADRESH to 0, VrefH = Vdd, VrefL = Vss;
+020F 3080  1537 	MOVLW .128
+0210 1683  1538 	BSF   0x03,RP0
+0211 009F  1539 	MOVWF ADCON1
+           1540 			;}
+0212 0008  1541 	RETURN
+           1542 			;
+           1543 			;void InitialiseGlobals(void) {
+           1544 InitialiseGlobals
+           1545 			;	char i =0;
+0213 01A9  1546 	CLRF  i
+           1547 			;	DigitCounter =0;
+0214 01BB  1548 	CLRF  DigitCounter
+           1549 			;	DispValue = 0;
+0215 01BC  1550 	CLRF  DispValue
+0216 01BD  1551 	CLRF  DispValue+1
+           1552 			;	MagicNumber =0;
+0217 01ED  1553 	CLRF  MagicNumber
+0218 01EE  1554 	CLRF  MagicNumber+1
+CC5X Version 3.2,   File: RPM.c                5. Sep 2011  12:50   Page 27
+
+ADDR CODE  LINE SOURCE
+
+0219 01EF  1555 	CLRF  MagicNumber+2
+           1556 			;	FilterIndex=0;
+021A 01EC  1557 	CLRF  FilterIndex
+           1558 			;	for (i=0;i<4;i++) {
+021B 01A9  1559 	CLRF  i
+021C 3004  1560 m055	MOVLW .4
+021D 0229  1561 	SUBWF i,W
+021E 1803  1562 	BTFSC 0x03,Carry
+021F 2A27  1563 	GOTO  m056
+           1564 			;		Digit[i]=0;
+0220 3068  1565 	MOVLW .104
+0221 0729  1566 	ADDWF i,W
+0222 0084  1567 	MOVWF FSR
+0223 1383  1568 	BCF   0x03,IRP
+0224 0180  1569 	CLRF  INDF
+           1570 			;	}
+0225 0AA9  1571 	INCF  i,1
+0226 2A1C  1572 	GOTO  m055
+           1573 			;	for(i=0;i<FilterDepth-1;i++){
+0227 01A9  1574 m056	CLRF  i
+0228 3013  1575 m057	MOVLW .19
+0229 0229  1576 	SUBWF i,W
+022A 1803  1577 	BTFSC 0x03,Carry
+022B 2A36  1578 	GOTO  m058
+           1579 			;		A2DFilter[i]=0;	
+022C 1003  1580 	BCF   0x03,Carry
+022D 0D29  1581 	RLF   i,W
+022E 3E40  1582 	ADDLW .64
+022F 0084  1583 	MOVWF FSR
+0230 1383  1584 	BCF   0x03,IRP
+0231 0180  1585 	CLRF  INDF
+0232 0A84  1586 	INCF  FSR,1
+0233 0180  1587 	CLRF  INDF
+           1588 			;	}
+0234 0AA9  1589 	INCF  i,1
+0235 2A28  1590 	GOTO  m057
+           1591 			;}
+0236 0008  1592 m058	RETURN
+           1593 			;
+           1594 			;void DisplayDigit(char DigitCounter){
+           1595 DisplayDigit
+0237 00A2  1596 	MOVWF DigitCounter_2
+           1597 			;
+           1598 			;	DISP0=0;
+0238 1305  1599 	BCF   PORTA,6
+           1600 			;	DISP1=0;
+0239 1205  1601 	BCF   PORTA,4
+           1602 			;	DISP2=0;
+023A 1185  1603 	BCF   PORTA,3
+           1604 			;	DISP3=0;
+023B 1105  1605 	BCF   PORTA,2
+           1606 			;
+           1607 			;	DECIMAL=0;
+023C 1385  1608 	BCF   PORTA,7
+           1609 			;
+           1610 			;//	Put current digit on PORTB lower nibble
+           1611 			;	PORTB=PORTB&0b11110000;					// CLEAR PORTB LOWER NIBBLE
+023D 30F0  1612 	MOVLW .240
+023E 0586  1613 	ANDWF PORTB,1
+           1614 			;// Turn on only the digit of interest
+CC5X Version 3.2,   File: RPM.c                5. Sep 2011  12:50   Page 28
+
+ADDR CODE  LINE SOURCE
+
+           1615 			;		switch (DigitCounter) {
+023F 0822  1616 	MOVF  DigitCounter_2,W
+0240 1903  1617 	BTFSC 0x03,Zero_
+0241 2A4C  1618 	GOTO  m059
+0242 3A01  1619 	XORLW .1
+0243 1903  1620 	BTFSC 0x03,Zero_
+0244 2A50  1621 	GOTO  m060
+0245 3A03  1622 	XORLW .3
+0246 1903  1623 	BTFSC 0x03,Zero_
+0247 2A54  1624 	GOTO  m061
+0248 3A01  1625 	XORLW .1
+0249 1903  1626 	BTFSC 0x03,Zero_
+024A 2A58  1627 	GOTO  m062
+024B 2A5B  1628 	GOTO  m063
+           1629 			;  			case 0:
+           1630 			;				PORTB=PORTB|Digit[0];
+024C 0868  1631 m059	MOVF  Digit,W
+024D 0486  1632 	IORWF PORTB,1
+           1633 			;				//DECIMAL=1;								
+           1634 			;				DISP0=1;
+024E 1705  1635 	BSF   PORTA,6
+           1636 			;	   			break;
+024F 2A5B  1637 	GOTO  m063
+           1638 			;  			case 1:
+           1639 			;				PORTB=PORTB|Digit[1];
+0250 0869  1640 m060	MOVF  Digit+1,W
+0251 0486  1641 	IORWF PORTB,1
+           1642 			;				//DECIMAL=1;
+           1643 			;				DISP1=1;										
+0252 1605  1644 	BSF   PORTA,4
+           1645 			;	   			break;
+0253 2A5B  1646 	GOTO  m063
+           1647 			;  			case 2:
+           1648 			;				PORTB=PORTB|Digit[2];	
+0254 086A  1649 m061	MOVF  Digit+2,W
+0255 0486  1650 	IORWF PORTB,1
+           1651 			;				//DECIMAL=1;									
+           1652 			;	   			DISP2=1;
+0256 1585  1653 	BSF   PORTA,3
+           1654 			;				break;
+0257 2A5B  1655 	GOTO  m063
+           1656 			;  			case 3:
+           1657 			;				PORTB=PORTB|Digit[3];
+0258 086B  1658 m062	MOVF  Digit+3,W
+0259 0486  1659 	IORWF PORTB,1
+           1660 			;				//DECIMAL=1;
+           1661 			;				DISP3=1;										
+025A 1505  1662 	BSF   PORTA,2
+           1663 			;	   			break;
+           1664 			;			default:
+           1665 			;				break;
+           1666 			;		}
+           1667 			;	MC14543_LD_CTRL=1;						// Load digit into BCD driver.
+025B 1686  1668 m063	BSF   PORTB,5
+           1669 			;    MC14543_LD_CTRL=0;						// Disable loads to BCD driver
+025C 1286  1670 	BCF   PORTB,5
+           1671 			;}	
+025D 0008  1672 	RETURN
+           1673 			;
+           1674 			;void Dec2BCD() {
+CC5X Version 3.2,   File: RPM.c                5. Sep 2011  12:50   Page 29
+
+ADDR CODE  LINE SOURCE
+
+           1675 Dec2BCD
+           1676 			;	uns16 temp =0;
+025E 01A2  1677 	CLRF  temp_2
+025F 01A3  1678 	CLRF  temp_2+1
+           1679 			;	//THIS CONVERTS 16BIT NO to 4 BCD bytes
+           1680 			;		temp=DispValue%10;
+0260 083C  1681 	MOVF  DispValue,W
+0261 00A5  1682 	MOVWF C2tmp
+0262 083D  1683 	MOVF  DispValue+1,W
+0263 00A6  1684 	MOVWF C2tmp+1
+0264 01A2  1685 	CLRF  temp_2
+0265 01A3  1686 	CLRF  temp_2+1
+0266 3010  1687 	MOVLW .16
+0267 00A4  1688 	MOVWF C1cnt
+0268 0DA5  1689 m064	RLF   C2tmp,1
+0269 0DA6  1690 	RLF   C2tmp+1,1
+026A 0DA2  1691 	RLF   temp_2,1
+026B 1803  1692 	BTFSC 0x03,Carry
+026C 2A71  1693 	GOTO  m065
+026D 300A  1694 	MOVLW .10
+026E 0222  1695 	SUBWF temp_2,W
+026F 1C03  1696 	BTFSS 0x03,Carry
+0270 2A73  1697 	GOTO  m066
+0271 300A  1698 m065	MOVLW .10
+0272 02A2  1699 	SUBWF temp_2,1
+0273 0BA4  1700 m066	DECFSZ C1cnt,1
+0274 2A68  1701 	GOTO  m064
+           1702 			;		Digit[0]=temp;			
+0275 0822  1703 	MOVF  temp_2,W
+0276 00E8  1704 	MOVWF Digit
+           1705 			;		temp=DispValue/10;		
+0277 083C  1706 	MOVF  DispValue,W
+0278 00A5  1707 	MOVWF C4tmp
+0279 083D  1708 	MOVF  DispValue+1,W
+027A 00A6  1709 	MOVWF C4tmp+1
+027B 01A7  1710 	CLRF  C5rem
+027C 3010  1711 	MOVLW .16
+027D 00A4  1712 	MOVWF C3cnt
+027E 0DA5  1713 m067	RLF   C4tmp,1
+027F 0DA6  1714 	RLF   C4tmp+1,1
+0280 0DA7  1715 	RLF   C5rem,1
+0281 1803  1716 	BTFSC 0x03,Carry
+0282 2A87  1717 	GOTO  m068
+0283 300A  1718 	MOVLW .10
+0284 0227  1719 	SUBWF C5rem,W
+0285 1C03  1720 	BTFSS 0x03,Carry
+0286 2A8A  1721 	GOTO  m069
+0287 300A  1722 m068	MOVLW .10
+0288 02A7  1723 	SUBWF C5rem,1
+0289 1403  1724 	BSF   0x03,Carry
+028A 0DA2  1725 m069	RLF   temp_2,1
+028B 0DA3  1726 	RLF   temp_2+1,1
+028C 0BA4  1727 	DECFSZ C3cnt,1
+028D 2A7E  1728 	GOTO  m067
+           1729 			;		Digit[1]=temp%10;			
+028E 0822  1730 	MOVF  temp_2,W
+028F 00A5  1731 	MOVWF C7tmp
+0290 0823  1732 	MOVF  temp_2+1,W
+0291 00A6  1733 	MOVWF C7tmp+1
+0292 01E9  1734 	CLRF  Digit+1
+CC5X Version 3.2,   File: RPM.c                5. Sep 2011  12:50   Page 30
+
+ADDR CODE  LINE SOURCE
+
+0293 3010  1735 	MOVLW .16
+0294 00A4  1736 	MOVWF C6cnt
+0295 0DA5  1737 m070	RLF   C7tmp,1
+0296 0DA6  1738 	RLF   C7tmp+1,1
+0297 0DE9  1739 	RLF   Digit+1,1
+0298 1803  1740 	BTFSC 0x03,Carry
+0299 2A9E  1741 	GOTO  m071
+029A 300A  1742 	MOVLW .10
+029B 0269  1743 	SUBWF Digit+1,W
+029C 1C03  1744 	BTFSS 0x03,Carry
+029D 2AA0  1745 	GOTO  m072
+029E 300A  1746 m071	MOVLW .10
+029F 02E9  1747 	SUBWF Digit+1,1
+02A0 0BA4  1748 m072	DECFSZ C6cnt,1
+02A1 2A95  1749 	GOTO  m070
+           1750 			;		temp=DispValue/100;	
+02A2 083C  1751 	MOVF  DispValue,W
+02A3 00A5  1752 	MOVWF C9tmp
+02A4 083D  1753 	MOVF  DispValue+1,W
+02A5 00A6  1754 	MOVWF C9tmp+1
+02A6 01A7  1755 	CLRF  C10rem
+02A7 3010  1756 	MOVLW .16
+02A8 00A4  1757 	MOVWF C8cnt
+02A9 0DA5  1758 m073	RLF   C9tmp,1
+02AA 0DA6  1759 	RLF   C9tmp+1,1
+02AB 0DA7  1760 	RLF   C10rem,1
+02AC 1803  1761 	BTFSC 0x03,Carry
+02AD 2AB2  1762 	GOTO  m074
+02AE 3064  1763 	MOVLW .100
+02AF 0227  1764 	SUBWF C10rem,W
+02B0 1C03  1765 	BTFSS 0x03,Carry
+02B1 2AB5  1766 	GOTO  m075
+02B2 3064  1767 m074	MOVLW .100
+02B3 02A7  1768 	SUBWF C10rem,1
+02B4 1403  1769 	BSF   0x03,Carry
+02B5 0DA2  1770 m075	RLF   temp_2,1
+02B6 0DA3  1771 	RLF   temp_2+1,1
+02B7 0BA4  1772 	DECFSZ C8cnt,1
+02B8 2AA9  1773 	GOTO  m073
+           1774 			;		Digit[2]=temp%10;			
+02B9 0822  1775 	MOVF  temp_2,W
+02BA 00A5  1776 	MOVWF C12tmp
+02BB 0823  1777 	MOVF  temp_2+1,W
+02BC 00A6  1778 	MOVWF C12tmp+1
+02BD 01EA  1779 	CLRF  Digit+2
+02BE 3010  1780 	MOVLW .16
+02BF 00A4  1781 	MOVWF C11cnt
+02C0 0DA5  1782 m076	RLF   C12tmp,1
+02C1 0DA6  1783 	RLF   C12tmp+1,1
+02C2 0DEA  1784 	RLF   Digit+2,1
+02C3 1803  1785 	BTFSC 0x03,Carry
+02C4 2AC9  1786 	GOTO  m077
+02C5 300A  1787 	MOVLW .10
+02C6 026A  1788 	SUBWF Digit+2,W
+02C7 1C03  1789 	BTFSS 0x03,Carry
+02C8 2ACB  1790 	GOTO  m078
+02C9 300A  1791 m077	MOVLW .10
+02CA 02EA  1792 	SUBWF Digit+2,1
+02CB 0BA4  1793 m078	DECFSZ C11cnt,1
+02CC 2AC0  1794 	GOTO  m076
+CC5X Version 3.2,   File: RPM.c                5. Sep 2011  12:50   Page 31
+
+ADDR CODE  LINE SOURCE
+
+           1795 			;		temp=DispValue/1000;	
+02CD 083C  1796 	MOVF  DispValue,W
+02CE 00A5  1797 	MOVWF C14tmp
+02CF 083D  1798 	MOVF  DispValue+1,W
+02D0 00A6  1799 	MOVWF C14tmp+1
+02D1 01A7  1800 	CLRF  C15rem
+02D2 01A8  1801 	CLRF  C15rem+1
+02D3 3010  1802 	MOVLW .16
+02D4 00A4  1803 	MOVWF C13cnt
+02D5 0DA5  1804 m079	RLF   C14tmp,1
+02D6 0DA6  1805 	RLF   C14tmp+1,1
+02D7 0DA7  1806 	RLF   C15rem,1
+02D8 0DA8  1807 	RLF   C15rem+1,1
+02D9 3003  1808 	MOVLW .3
+02DA 0228  1809 	SUBWF C15rem+1,W
+02DB 1C03  1810 	BTFSS 0x03,Carry
+02DC 2AEA  1811 	GOTO  m081
+02DD 1D03  1812 	BTFSS 0x03,Zero_
+02DE 2AE3  1813 	GOTO  m080
+02DF 30E8  1814 	MOVLW .232
+02E0 0227  1815 	SUBWF C15rem,W
+02E1 1C03  1816 	BTFSS 0x03,Carry
+02E2 2AEA  1817 	GOTO  m081
+02E3 3003  1818 m080	MOVLW .3
+02E4 02A8  1819 	SUBWF C15rem+1,1
+02E5 30E8  1820 	MOVLW .232
+02E6 02A7  1821 	SUBWF C15rem,1
+02E7 1C03  1822 	BTFSS 0x03,Carry
+02E8 03A8  1823 	DECF  C15rem+1,1
+02E9 1403  1824 	BSF   0x03,Carry
+02EA 0DA2  1825 m081	RLF   temp_2,1
+02EB 0DA3  1826 	RLF   temp_2+1,1
+02EC 0BA4  1827 	DECFSZ C13cnt,1
+02ED 2AD5  1828 	GOTO  m079
+           1829 			;		Digit[3]=temp;
+02EE 0822  1830 	MOVF  temp_2,W
+02EF 00EB  1831 	MOVWF Digit+3
+           1832 			;}
+02F0 0008  1833 	RETURN
+           1834 			;
+           1835 			;
+           1836 			;void GetA2D() {
+           1837 GetA2D
+           1838 			;	uns16 Filter =0;
+02F1 01A9  1839 	CLRF  Filter
+02F2 01AA  1840 	CLRF  Filter+1
+           1841 			;	char i =0;
+02F3 01AB  1842 	CLRF  i_2
+           1843 			;	uns16 filtertemp =0;
+02F4 01AC  1844 	CLRF  filtertemp
+02F5 01AD  1845 	CLRF  filtertemp+1
+           1846 			;	uns16 comparison =0;
+02F6 01AE  1847 	CLRF  comparison
+02F7 01AF  1848 	CLRF  comparison+1
+           1849 			;
+           1850 			;	A2DResult =0;
+02F8 01BE  1851 	CLRF  A2DResult
+02F9 01BF  1852 	CLRF  A2DResult+1
+           1853 			;	
+           1854 			;	ADCON0=ADCON0|0x04;							//Start A2D Conversion
+CC5X Version 3.2,   File: RPM.c                5. Sep 2011  12:50   Page 32
+
+ADDR CODE  LINE SOURCE
+
+02FA 151F  1855 	BSF   ADCON0,2
+           1856 			;	while((ADCON0&0x04) != 0){};						// Wait for conversion
+02FB 191F  1857 m082	BTFSC ADCON0,2
+02FC 2AFB  1858 	GOTO  m082
+           1859 			;	A2DResult=ADRESH;
+02FD 081E  1860 	MOVF  ADRESH,W
+02FE 00BE  1861 	MOVWF A2DResult
+02FF 01BF  1862 	CLRF  A2DResult+1
+           1863 			;	A2DResult=A2DResult<<8;
+0300 00BF  1864 	MOVWF A2DResult+1
+0301 01BE  1865 	CLRF  A2DResult
+           1866 			;	A2DResult=A2DResult|ADRESL;
+0302 1683  1867 	BSF   0x03,RP0
+0303 081E  1868 	MOVF  ADRESL,W
+0304 1283  1869 	BCF   0x03,RP0
+0305 04BE  1870 	IORWF A2DResult,1
+           1871 			;	A2DResult=A2DResult&0b0000.1111.1111.1111;
+0306 300F  1872 	MOVLW .15
+0307 05BF  1873 	ANDWF A2DResult+1,1
+           1874 			;	
+           1875 			;	//if(A2DResult<3){
+           1876 			;	//	A2DResult=0;
+           1877 			;	//}
+           1878 			;	
+           1879 			;	// NOTE ON FILTERING - A2D range is 0 - 1023 (12 Bits)
+           1880 			;	// FILTER variable is 16 bit
+           1881 			;	// max no for Fitler depth = 64
+           1882 			;	
+           1883 			;	A2DFilter[FilterIndex]=A2DResult;
+0308 1003  1884 	BCF   0x03,Carry
+0309 0D6C  1885 	RLF   FilterIndex,W
+030A 3E40  1886 	ADDLW .64
+030B 0084  1887 	MOVWF FSR
+030C 1383  1888 	BCF   0x03,IRP
+030D 083E  1889 	MOVF  A2DResult,W
+030E 0080  1890 	MOVWF INDF
+030F 0A84  1891 	INCF  FSR,1
+0310 083F  1892 	MOVF  A2DResult+1,W
+0311 0080  1893 	MOVWF INDF
+           1894 			;	//A2DFilter[FilterIndex]=FilterDepth;
+           1895 			;	FilterIndex++;
+0312 0AEC  1896 	INCF  FilterIndex,1
+           1897 			;	if(FilterIndex>FilterDepth-1){
+0313 3014  1898 	MOVLW .20
+0314 026C  1899 	SUBWF FilterIndex,W
+0315 1803  1900 	BTFSC 0x03,Carry
+           1901 			;		FilterIndex=0;
+0316 01EC  1902 	CLRF  FilterIndex
+           1903 			;	}
+           1904 			;
+           1905 			;	for(i=0;i<FilterDepth-1;i++) {
+0317 01AB  1906 	CLRF  i_2
+0318 3013  1907 m083	MOVLW .19
+0319 022B  1908 	SUBWF i_2,W
+031A 1803  1909 	BTFSC 0x03,Carry
+031B 2B2D  1910 	GOTO  m084
+           1911 			;		filtertemp = A2DFilter[i];
+031C 1003  1912 	BCF   0x03,Carry
+031D 0D2B  1913 	RLF   i_2,W
+031E 3E40  1914 	ADDLW .64
+CC5X Version 3.2,   File: RPM.c                5. Sep 2011  12:50   Page 33
+
+ADDR CODE  LINE SOURCE
+
+031F 0084  1915 	MOVWF FSR
+0320 1383  1916 	BCF   0x03,IRP
+0321 0800  1917 	MOVF  INDF,W
+0322 00AC  1918 	MOVWF filtertemp
+0323 0A84  1919 	INCF  FSR,1
+0324 0800  1920 	MOVF  INDF,W
+0325 00AD  1921 	MOVWF filtertemp+1
+           1922 			;		//filtertemp=25;
+           1923 			;		Filter= Filter+filtertemp;
+0326 07AA  1924 	ADDWF Filter+1,1
+0327 082C  1925 	MOVF  filtertemp,W
+0328 07A9  1926 	ADDWF Filter,1
+0329 1803  1927 	BTFSC 0x03,Carry
+032A 0AAA  1928 	INCF  Filter+1,1
+           1929 			;	}	
+032B 0AAB  1930 	INCF  i_2,1
+032C 2B18  1931 	GOTO  m083
+           1932 			;	Filter=Filter+filtertemp;
+032D 082D  1933 m084	MOVF  filtertemp+1,W
+032E 07AA  1934 	ADDWF Filter+1,1
+032F 082C  1935 	MOVF  filtertemp,W
+0330 07A9  1936 	ADDWF Filter,1
+0331 1803  1937 	BTFSC 0x03,Carry
+0332 0AAA  1938 	INCF  Filter+1,1
+           1939 			;	Filter=Filter/FilterDepth;
+0333 0829  1940 	MOVF  Filter,W
+0334 00B1  1941 	MOVWF C17tmp
+0335 082A  1942 	MOVF  Filter+1,W
+0336 00B2  1943 	MOVWF C17tmp+1
+0337 01B3  1944 	CLRF  C18rem
+0338 3010  1945 	MOVLW .16
+0339 00B0  1946 	MOVWF C16cnt
+033A 0DB1  1947 m085	RLF   C17tmp,1
+033B 0DB2  1948 	RLF   C17tmp+1,1
+033C 0DB3  1949 	RLF   C18rem,1
+033D 1803  1950 	BTFSC 0x03,Carry
+033E 2B43  1951 	GOTO  m086
+033F 3014  1952 	MOVLW .20
+0340 0233  1953 	SUBWF C18rem,W
+0341 1C03  1954 	BTFSS 0x03,Carry
+0342 2B46  1955 	GOTO  m087
+0343 3014  1956 m086	MOVLW .20
+0344 02B3  1957 	SUBWF C18rem,1
+0345 1403  1958 	BSF   0x03,Carry
+0346 0DA9  1959 m087	RLF   Filter,1
+0347 0DAA  1960 	RLF   Filter+1,1
+0348 0BB0  1961 	DECFSZ C16cnt,1
+0349 2B3A  1962 	GOTO  m085
+           1963 			;	
+           1964 			;//DispValue = Filter;
+           1965 			;
+           1966 			;MagicNumber = Filter;
+034A 0829  1967 	MOVF  Filter,W
+034B 00B0  1968 	MOVWF arg1f24
+034C 082A  1969 	MOVF  Filter+1,W
+034D 00B1  1970 	MOVWF arg1f24+1
+034E 01B2  1971 	CLRF  arg1f24+2
+034F 210C  1972 	CALL  _int24ToFloat24
+0350 00ED  1973 	MOVWF MagicNumber
+0351 0831  1974 	MOVF  rval+1,W
+CC5X Version 3.2,   File: RPM.c                5. Sep 2011  12:50   Page 34
+
+ADDR CODE  LINE SOURCE
+
+0352 00EE  1975 	MOVWF MagicNumber+1
+0353 0832  1976 	MOVF  rval+2,W
+0354 00EF  1977 	MOVWF MagicNumber+2
+           1978 			;MagicNumber = MagicNumber * ScaleRange;
+0355 086D  1979 	MOVF  MagicNumber,W
+0356 00B0  1980 	MOVWF arg1f24
+0357 086E  1981 	MOVF  MagicNumber+1,W
+0358 00B1  1982 	MOVWF arg1f24+1
+0359 086F  1983 	MOVF  MagicNumber+2,W
+035A 00B2  1984 	MOVWF arg1f24+2
+035B 3040  1985 	MOVLW .64
+035C 00B3  1986 	MOVWF arg2f24
+035D 3067  1987 	MOVLW .103
+035E 00B4  1988 	MOVWF arg2f24+1
+035F 3089  1989 	MOVLW .137
+0360 00B5  1990 	MOVWF arg2f24+2
+0361 2022  1991 	CALL  _fmul24
+0362 00ED  1992 	MOVWF MagicNumber
+0363 0831  1993 	MOVF  arg1f24+1,W
+0364 00EE  1994 	MOVWF MagicNumber+1
+0365 0832  1995 	MOVF  arg1f24+2,W
+0366 00EF  1996 	MOVWF MagicNumber+2
+           1997 			;MagicNumber = MagicNumber / 1024;
+0367 300A  1998 	MOVLW .10
+0368 02EF  1999 	SUBWF MagicNumber+2,1
+0369 1803  2000 	BTFSC 0x03,Carry
+036A 2B6D  2001 	GOTO  m088
+036B 1574  2002 	BSF   0x74,FpUnderFlow
+036C 01EF  2003 	CLRF  MagicNumber+2
+           2004 			;
+           2005 			;comparison = MagicNumber-10;
+036D 086D  2006 m088	MOVF  MagicNumber,W
+036E 00B0  2007 	MOVWF arg1f24
+036F 086E  2008 	MOVF  MagicNumber+1,W
+0370 00B1  2009 	MOVWF arg1f24+1
+0371 086F  2010 	MOVF  MagicNumber+2,W
+0372 00B2  2011 	MOVWF arg1f24+2
+0373 01B3  2012 	CLRF  arg2f24
+0374 3020  2013 	MOVLW .32
+0375 00B4  2014 	MOVWF arg2f24+1
+0376 3082  2015 	MOVLW .130
+0377 00B5  2016 	MOVWF arg2f24+2
+0378 2107  2017 	CALL  _fsub24
+0379 214A  2018 	CALL  _float24ToInt24
+037A 00AE  2019 	MOVWF comparison
+037B 0831  2020 	MOVF  rval_3+1,W
+037C 00AF  2021 	MOVWF comparison+1
+           2022 			;
+           2023 			;if(OldMagicNumber < comparison){
+037D 082E  2024 	MOVF  comparison,W
+037E 00B0  2025 	MOVWF arg1f24
+037F 082F  2026 	MOVF  comparison+1,W
+0380 00B1  2027 	MOVWF arg1f24+1
+0381 01B2  2028 	CLRF  arg1f24+2
+0382 210C  2029 	CALL  _int24ToFloat24
+0383 0871  2030 	MOVF  OldMagicNumber,W
+0384 00B3  2031 	MOVWF arg2f24
+0385 0872  2032 	MOVF  OldMagicNumber+1,W
+0386 00B4  2033 	MOVWF arg2f24+1
+0387 0873  2034 	MOVF  OldMagicNumber+2,W
+CC5X Version 3.2,   File: RPM.c                5. Sep 2011  12:50   Page 35
+
+ADDR CODE  LINE SOURCE
+
+0388 00B5  2035 	MOVWF arg2f24+2
+0389 21BA  2036 	CALL  _f24_GT_f24
+038A 1C03  2037 	BTFSS 0x03,Carry
+038B 2B92  2038 	GOTO  m089
+           2039 			;	//MagicNumber = Filter;
+           2040 			;	OldMagicNumber=MagicNumber;
+038C 086D  2041 	MOVF  MagicNumber,W
+038D 00F1  2042 	MOVWF OldMagicNumber
+038E 086E  2043 	MOVF  MagicNumber+1,W
+038F 00F2  2044 	MOVWF OldMagicNumber+1
+0390 086F  2045 	MOVF  MagicNumber+2,W
+0391 00F3  2046 	MOVWF OldMagicNumber+2
+           2047 			;}
+           2048 			;
+           2049 			;comparison =  MagicNumber+10;
+0392 086D  2050 m089	MOVF  MagicNumber,W
+0393 00B0  2051 	MOVWF arg1f24
+0394 086E  2052 	MOVF  MagicNumber+1,W
+0395 00B1  2053 	MOVWF arg1f24+1
+0396 086F  2054 	MOVF  MagicNumber+2,W
+0397 00B2  2055 	MOVWF arg1f24+2
+0398 01B3  2056 	CLRF  arg2f24
+0399 3020  2057 	MOVLW .32
+039A 00B4  2058 	MOVWF arg2f24+1
+039B 3082  2059 	MOVLW .130
+039C 00B5  2060 	MOVWF arg2f24+2
+039D 206F  2061 	CALL  _fadd24
+039E 214A  2062 	CALL  _float24ToInt24
+039F 00AE  2063 	MOVWF comparison
+03A0 0831  2064 	MOVF  rval_3+1,W
+03A1 00AF  2065 	MOVWF comparison+1
+           2066 			;if(OldMagicNumber > comparison){
+03A2 082E  2067 	MOVF  comparison,W
+03A3 00B0  2068 	MOVWF arg1f24
+03A4 082F  2069 	MOVF  comparison+1,W
+03A5 00B1  2070 	MOVWF arg1f24+1
+03A6 01B2  2071 	CLRF  arg1f24+2
+03A7 210C  2072 	CALL  _int24ToFloat24
+03A8 0871  2073 	MOVF  OldMagicNumber,W
+03A9 00B3  2074 	MOVWF arg2f24
+03AA 0872  2075 	MOVF  OldMagicNumber+1,W
+03AB 00B4  2076 	MOVWF arg2f24+1
+03AC 0873  2077 	MOVF  OldMagicNumber+2,W
+03AD 00B5  2078 	MOVWF arg2f24+2
+03AE 2194  2079 	CALL  _f24_LT_f24
+03AF 1C03  2080 	BTFSS 0x03,Carry
+03B0 2BB7  2081 	GOTO  m090
+           2082 			;	OldMagicNumber=MagicNumber;
+03B1 086D  2083 	MOVF  MagicNumber,W
+03B2 00F1  2084 	MOVWF OldMagicNumber
+03B3 086E  2085 	MOVF  MagicNumber+1,W
+03B4 00F2  2086 	MOVWF OldMagicNumber+1
+03B5 086F  2087 	MOVF  MagicNumber+2,W
+03B6 00F3  2088 	MOVWF OldMagicNumber+2
+           2089 			;} 
+           2090 			;
+           2091 			;if(MagicNumber > 10){
+03B7 1BEE  2092 m090	BTFSC MagicNumber+1,7
+03B8 2BD3  2093 	GOTO  m092
+03B9 3082  2094 	MOVLW .130
+CC5X Version 3.2,   File: RPM.c                5. Sep 2011  12:50   Page 36
+
+ADDR CODE  LINE SOURCE
+
+03BA 026F  2095 	SUBWF MagicNumber+2,W
+03BB 1C03  2096 	BTFSS 0x03,Carry
+03BC 2BD3  2097 	GOTO  m092
+03BD 1D03  2098 	BTFSS 0x03,Zero_
+03BE 2BC8  2099 	GOTO  m091
+03BF 3020  2100 	MOVLW .32
+03C0 026E  2101 	SUBWF MagicNumber+1,W
+03C1 1C03  2102 	BTFSS 0x03,Carry
+03C2 2BD3  2103 	GOTO  m092
+03C3 1D03  2104 	BTFSS 0x03,Zero_
+03C4 2BC8  2105 	GOTO  m091
+03C5 08ED  2106 	MOVF  MagicNumber,1
+03C6 1903  2107 	BTFSC 0x03,Zero_
+03C7 2BD3  2108 	GOTO  m092
+           2109 			;	DispValue= OldMagicNumber;
+03C8 0871  2110 m091	MOVF  OldMagicNumber,W
+03C9 00B0  2111 	MOVWF arg1f24
+03CA 0872  2112 	MOVF  OldMagicNumber+1,W
+03CB 00B1  2113 	MOVWF arg1f24+1
+03CC 0873  2114 	MOVF  OldMagicNumber+2,W
+03CD 00B2  2115 	MOVWF arg1f24+2
+03CE 214A  2116 	CALL  _float24ToInt24
+03CF 00BC  2117 	MOVWF DispValue
+03D0 0831  2118 	MOVF  rval_3+1,W
+03D1 00BD  2119 	MOVWF DispValue+1
+           2120 			;} else {
+03D2 2BD5  2121 	GOTO  m093
+           2122 			;	DispValue = 0;
+03D3 01BC  2123 m092	CLRF  DispValue
+03D4 01BD  2124 	CLRF  DispValue+1
+03D5 0008  2125 m093	RETURN
+           2126 
+     0000  2127 	ORG 0x2007
+2007 3F58  2128 	DATA 3F58H
+2008 3FFC  2129 	DATA 3FFCH
+     0000  2130 	END
+     0000  2131 
+     0000  2132 
+     0000  2133 ; *** KEY INFO ***
+     0000  2134 
+     0000  2135 ; 0x01E7 P0   44 word(s)  2 % : InitialiseHardware
+     0000  2136 ; 0x0213 P0   36 word(s)  1 % : InitialiseGlobals
+     0000  2137 ; 0x0237 P0   39 word(s)  1 % : DisplayDigit
+     0000  2138 ; 0x025E P0  147 word(s)  7 % : Dec2BCD
+     0000  2139 ; 0x02F1 P0  229 word(s) 11 % : GetA2D
+     0000  2140 ; 0x0004 P0   30 word(s)  1 % : IntHandler
+     0000  2141 ; 0x0022 P0   77 word(s)  3 % : _fmul24
+     0000  2142 ; 0x006F P0  152 word(s)  7 % : _fadd24
+     0000  2143 ; 0x0107 P0    5 word(s)  0 % : _fsub24
+     0000  2144 ; 0x010C P0   62 word(s)  3 % : _int24ToFloat24
+     0000  2145 ; 0x014A P0   74 word(s)  3 % : _float24ToInt24
+     0000  2146 ; 0x0194 P0   38 word(s)  1 % : _f24_LT_f24
+     0000  2147 ; 0x01BA P0   38 word(s)  1 % : _f24_GT_f24
+     0000  2148 ; 0x01E0 P0    7 word(s)  0 % : main
+     0000  2149 
+     0000  2150 ; RAM usage: 85 bytes (27 local), 283 bytes free
+     0000  2151 ; Maximum call level: 3 (+2 for interrupt)
+     0000  2152 ;  Codepage 0 has  979 word(s) :  47 %
+     0000  2153 ;  Codepage 1 has    0 word(s) :   0 %
+     0000  2154 ; Total of 979 code words (23 %)
